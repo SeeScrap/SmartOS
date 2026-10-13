@@ -1,0 +1,11 @@
+# Project S3 - 16 MB layout.
+# Name,     Type, SubType,  Offset,    Size
+nvs,        data, nvs,      0x9000,    0x6000
+phy_init,   data, phy,      0xf000,    0x1000
+factory,    app,  factory,  0x10000,   0x400000
+# LittleFS, mounted at /fs (stage 4.4). Everything the OS and its apps keep.
+storage,    data, littlefs, 0x410000,  0xBE0000
+# 64 KB that tests may erase and rewrite at will - never the filesystem.
+# Until stage 4.4 the park test wrote to storage's last sector, which LittleFS
+# now owns.
+scratch,    data, 0x40,     0xFF0000,  0x10000

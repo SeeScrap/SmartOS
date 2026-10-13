@@ -1,0 +1,62 @@
+MIT License
+
+Copyright (c) 2026 Project S3 contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+===============================================================================
+
+คำแปลภาษาไทย (ไม่เป็นทางการ - ฉบับภาษาอังกฤษข้างบนคือฉบับที่มีผลตามกฎหมาย)
+
+Unofficial Thai translation. The English text above is the licence; this is a
+reading aid and has no legal force.
+
+สัญญาอนุญาต MIT
+
+ลิขสิทธิ์ (c) 2026 ผู้ร่วมพัฒนา Project S3
+
+ขออนุญาตให้บุคคลใดก็ตามที่ได้รับสำเนาของซอฟต์แวร์นี้และไฟล์เอกสารประกอบ
+(ต่อไปนี้เรียกว่า "ซอฟต์แวร์") ใช้ซอฟต์แวร์นี้ได้โดยไม่มีข้อจำกัดและไม่มีค่าใช้จ่าย
+ซึ่งรวมถึงสิทธิในการใช้ ทำสำเนา แก้ไข รวมเข้ากับงานอื่น เผยแพร่ แจกจ่าย
+ให้สิทธิช่วง และ/หรือจำหน่ายสำเนาของซอฟต์แวร์ และอนุญาตให้ผู้ที่ได้รับซอฟต์แวร์
+กระทำการดังกล่าวได้เช่นกัน ภายใต้เงื่อนไขต่อไปนี้
+
+ประกาศลิขสิทธิ์และประกาศการอนุญาตข้างต้น ต้องปรากฏอยู่ในสำเนาทุกชุดของซอฟต์แวร์
+หรือในส่วนที่มีนัยสำคัญของซอฟต์แวร์
+
+ซอฟต์แวร์นี้ให้มา "ตามสภาพที่เป็นอยู่" โดยไม่มีการรับประกันใด ๆ ไม่ว่าโดยชัดแจ้ง
+หรือโดยปริยาย รวมถึงแต่ไม่จำกัดเพียงการรับประกันความเหมาะสมในเชิงพาณิชย์
+ความเหมาะสมต่อวัตถุประสงค์เฉพาะอย่าง และการไม่ละเมิดสิทธิ์ของผู้อื่น
+ไม่ว่ากรณีใด ผู้เขียนหรือผู้ถือลิขสิทธิ์จะไม่รับผิดต่อการเรียกร้อง ความเสียหาย
+หรือความรับผิดอื่นใด ไม่ว่าจะในทางสัญญา ละเมิด หรือทางอื่น อันเกิดจากหรือ
+เกี่ยวข้องกับซอฟต์แวร์ หรือการใช้งานหรือการกระทำอื่นใดเกี่ยวกับซอฟต์แวร์
+
+===============================================================================
+
+Third-party code / โค้ดจากภายนอก
+
+The one third-party component this project uses is not included here: littlefs
+(joltwallet/littlefs, BSD-3-Clause) is fetched by the ESP-IDF component manager
+from src/idf_component.yml and keeps its own licence. ESP-IDF itself is
+Apache-2.0.
+
+ส่วนประกอบจากภายนอกที่โปรเจกต์นี้ใช้มีชิ้นเดียวและไม่ได้รวมอยู่ในนี้ - littlefs
+(joltwallet/littlefs, BSD-3-Clause) ถูกดึงมาโดยตัวจัดการส่วนประกอบของ ESP-IDF
+ตามที่ระบุใน src/idf_component.yml และอยู่ภายใต้สัญญาอนุญาตของตัวเอง
+ส่วน ESP-IDF เองใช้ Apache-2.0

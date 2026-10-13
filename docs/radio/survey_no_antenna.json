@@ -1,0 +1,202 @@
+{
+ "scans": 5,
+ "aps": {
+  "00:00:00:00:00:01": {
+   "ssid": "(hidden)",
+   "ch": 6,
+   "mhz": 2437,
+   "auth": "WPA2",
+   "rssi": [
+    -57,
+    -58,
+    -60,
+    -58,
+    -57
+   ],
+   "median": -58,
+   "best": -57,
+   "seen": 5
+  },
+  "00:00:00:00:00:02": {
+   "ssid": "network-01",
+   "ch": 6,
+   "mhz": 2437,
+   "auth": "open",
+   "rssi": [
+    -57,
+    -57,
+    -60,
+    -59,
+    -56
+   ],
+   "median": -57,
+   "best": -56,
+   "seen": 5
+  },
+  "00:00:00:00:00:03": {
+   "ssid": "network-01",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "open",
+   "rssi": [
+    -77,
+    -76,
+    -77,
+    -76
+   ],
+   "median": -76,
+   "best": -76,
+   "seen": 4
+  },
+  "00:00:00:00:00:04": {
+   "ssid": "network-02",
+   "ch": 6,
+   "mhz": 2437,
+   "auth": "WPA2",
+   "rssi": [
+    -84,
+    -85,
+    -89
+   ],
+   "median": -85,
+   "best": -84,
+   "seen": 3
+  },
+  "00:00:00:00:00:05": {
+   "ssid": "network-01",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "open",
+   "rssi": [
+    -87,
+    -86,
+    -86
+   ],
+   "median": -86,
+   "best": -86,
+   "seen": 3
+  },
+  "00:00:00:00:00:06": {
+   "ssid": "network-03",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA",
+   "rssi": [
+    -88,
+    -90,
+    -88,
+    -89
+   ],
+   "median": -88,
+   "best": -88,
+   "seen": 4
+  },
+  "00:00:00:00:00:07": {
+   "ssid": "network-04",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "WPA2",
+   "rssi": [
+    -91,
+    -90,
+    -89
+   ],
+   "median": -90,
+   "best": -89,
+   "seen": 3
+  },
+  "00:00:00:00:00:08": {
+   "ssid": "network-05",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "open",
+   "rssi": [
+    -91,
+    -92,
+    -90
+   ],
+   "median": -91,
+   "best": -90,
+   "seen": 3
+  },
+  "00:00:00:00:00:09": {
+   "ssid": "(hidden)",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "WPA2",
+   "rssi": [
+    -76,
+    -79,
+    -78
+   ],
+   "median": -78,
+   "best": -76,
+   "seen": 3
+  },
+  "00:00:00:00:00:0a": {
+   "ssid": "(hidden)",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA2",
+   "rssi": [
+    -86
+   ],
+   "median": -86,
+   "best": -86,
+   "seen": 1
+  },
+  "00:00:00:00:00:0b": {
+   "ssid": "network-06",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA",
+   "rssi": [
+    -87,
+    -87,
+    -86
+   ],
+   "median": -87,
+   "best": -86,
+   "seen": 3
+  },
+  "00:00:00:00:00:0c": {
+   "ssid": "(hidden)",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "WPA2",
+   "rssi": [
+    -90
+   ],
+   "median": -90,
+   "best": -90,
+   "seen": 1
+  },
+  "00:00:00:00:00:0d": {
+   "ssid": "network-07",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA",
+   "rssi": [
+    -92,
+    -94,
+    -88
+   ],
+   "median": -92,
+   "best": -88,
+   "seen": 3
+  },
+  "00:00:00:00:00:0e": {
+   "ssid": "network-01",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "open",
+   "rssi": [
+    -89
+   ],
+   "median": -89,
+   "best": -89,
+   "seen": 1
+  }
+ },
+ "note": "Real measurements; the identifiers are not. Access points are numbered in the order they were first seen, consistently across every file here, so comparing two surveys still works."
+}

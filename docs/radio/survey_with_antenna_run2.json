@@ -1,0 +1,108 @@
+{
+ "scans": 5,
+ "aps": {
+  "00:00:00:00:00:02": {
+   "ssid": "network-01",
+   "ch": 6,
+   "mhz": 2437,
+   "auth": "open",
+   "rssi": [
+    -65,
+    -67,
+    -65,
+    -65,
+    -60
+   ],
+   "median": -65,
+   "best": -60,
+   "seen": 5
+  },
+  "00:00:00:00:00:09": {
+   "ssid": "(hidden)",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "WPA2",
+   "rssi": [
+    -83,
+    -81,
+    -83
+   ],
+   "median": -83,
+   "best": -81,
+   "seen": 3
+  },
+  "00:00:00:00:00:03": {
+   "ssid": "network-01",
+   "ch": 11,
+   "mhz": 2462,
+   "auth": "open",
+   "rssi": [
+    -83,
+    -82,
+    -83,
+    -83
+   ],
+   "median": -83,
+   "best": -82,
+   "seen": 4
+  },
+  "00:00:00:00:00:0b": {
+   "ssid": "network-06",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA",
+   "rssi": [
+    -88,
+    -91,
+    -90,
+    -88,
+    -86
+   ],
+   "median": -88,
+   "best": -86,
+   "seen": 5
+  },
+  "00:00:00:00:00:06": {
+   "ssid": "network-03",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA",
+   "rssi": [
+    -90,
+    -91,
+    -93
+   ],
+   "median": -91,
+   "best": -90,
+   "seen": 3
+  },
+  "00:00:00:00:00:01": {
+   "ssid": "(hidden)",
+   "ch": 6,
+   "mhz": 2437,
+   "auth": "WPA2",
+   "rssi": [
+    -65,
+    -66,
+    -64
+   ],
+   "median": -65,
+   "best": -64,
+   "seen": 3
+  },
+  "00:00:00:00:00:0d": {
+   "ssid": "network-07",
+   "ch": 1,
+   "mhz": 2412,
+   "auth": "WPA",
+   "rssi": [
+    -93,
+    -94
+   ],
+   "median": -93,
+   "best": -93,
+   "seen": 2
+  }
+ },
+ "note": "Real measurements; the identifiers are not. Access points are numbered in the order they were first seen, consistently across every file here, so comparing two surveys still works."
+}

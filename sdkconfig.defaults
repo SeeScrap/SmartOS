@@ -1,0 +1,67 @@
+# --- Project S3 -----------------------------------------------------------
+# These are the settings the Arduino core would not let us touch. They are the
+# whole reason stage 2.0 exists.
+
+# THE important one: FreeRTOS runs on core 0 only, so core 1 is never started
+# by IDF and is left stalled for our kernel to claim in stage 2.1.
+CONFIG_FREERTOS_UNICORE=y
+
+# 1 ms tick instead of the 10 ms default - our delays need finer granularity,
+# and it makes the difference visible once we bring up our own tick in 2.4.
+CONFIG_FREERTOS_HZ=1000
+
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# -O2 instead of IDF's default -Og. Everything up to stage 3.5 was measured at
+# -Og, and the switch was made as its own step with the whole stage 2 test set
+# re-run afterwards: shared state that was only ever correct because the
+# compiler reloaded it from memory is exactly what -O2 finds. Assertions stay
+# on - they are cheap, and they are how a regression here would announce itself.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# 16 KB for the main task, from IDF's 3.5 KB. It is core 0's system loop, and
+# since stage 4.4 it runs the filesystem's mailbox handlers - LittleFS plus
+# newlib's stdio - on this stack. 3.5 KB overflowed the first time a test
+# formatted and parsed a file on top of that.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=16384
+
+# --- N16R8 flash + octal PSRAM -------------------------------------------
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_TYPE_AUTO=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# --- console --------------------------------------------------------------
+# The board is on its native USB socket (VID 303A:1001), so printf goes to the
+# USB Serial/JTAG peripheral.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# --- the radio (stage 6.3) --------------------------------------------------
+# Wi-Fi and lwIP take their buffers from PSRAM rather than the internal heap.
+# There are eight megabytes of PSRAM doing nothing and about 200 KB of internal
+# RAM that the kernel's own pool, the framebuffer staging buffers and ESP-IDF
+# are already sharing - and the first build with the radio linked in could not
+# reserve the kernel's 128 KB at all.
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+
+# Smaller Wi-Fi buffer pools than IDF's defaults. This board scans and fetches;
+# it is not a router. Each static RX buffer is 1.6 KB of internal RAM.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_DYNAMIC_TX_BUFFER_NUM=16
+CONFIG_ESP_WIFI_RX_BA_WIN=4
+
+# --- device service (stage 4.5 follow-up) -----------------------------------
+# ADC streams are sampled from a hardware-timer interrupt that must keep
+# running while a flash write has the cache off - otherwise every erase (~30 ms)
+# costs a sensor stream three samples. Both the timer's ISR and the ISR-safe
+# ADC read then live in IRAM, and the ADC unit's state in internal RAM.
+CONFIG_GPTIMER_ISR_CACHE_SAFE=y
+CONFIG_ADC_ONESHOT_CTRL_FUNC_IN_IRAM=y

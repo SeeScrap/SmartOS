@@ -1,0 +1,21 @@
+# Generated, not written: 320x216 pixels as C, made by tools/mkimage.py from
+# docs/art/wallpaper_src.jpg. Marked so GitHub leaves it out of the language
+# statistics and collapses it in a diff, where 216 lines of hex help nobody.
+src/gfx/wallpaper_data.cpp linguist-generated=true
+
+# The 5x8 font is generated too, by tools/gen_font.py from tools/font5x8.txt.
+src/gfx/font5x8.h linguist-generated=true
+
+# Measurements and pictures, not text to be merged.
+*.png binary
+*.jpg binary
+docs/radio/*.json -diff
+
+# Line endings are the repository's business, not each checkout's: store LF and
+# hand each platform what it expects. Without this, whether a clone rewrites
+# every file depends on the contributor's own core.autocrlf setting.
+* text=auto
+
+# These two are read by tools that want LF whatever the platform.
+*.S  text eol=lf
+*.py text eol=lf

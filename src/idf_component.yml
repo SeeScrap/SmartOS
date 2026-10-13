@@ -1,0 +1,6 @@
+## Stage 4.4 - components fetched from the Espressif registry at build time.
+## Pinned to exact versions, so the same source builds the same firmware.
+dependencies:
+  # LittleFS: power-loss resilient, wear-levelling, small. Not bundled with
+  # ESP-IDF; this is the port the IDF docs point to.
+  joltwallet/littlefs: "==1.22.3"
