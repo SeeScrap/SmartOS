@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "kernel/kspin.h"
 
 // ---------------------------------------------------------------------------
@@ -21,41 +23,10 @@
 // without touching a single caller.
 // ---------------------------------------------------------------------------
 
-// 32 is the ceiling, not a guess: the wait sets in ksync.h are one uint32_t
-// per object, one bit per task (a static_assert there holds the two together).
-// It was 16 until stage 4.2, when the stage 2 demo plus the input sampler had
-// filled every slot and the event bus's timer service had nowhere to go.
-#define K_MAX_TASKS   32
-#define K_MAX_CPUS    2
-// 2 KB per task. Measured high-water across the whole demo was 704 bytes, so
-// this is still 3x headroom, and it keeps twelve tasks inside a 48 KB heap.
-#define K_STACK_SIZE  2048
-
-// Stage 5.4d - a task may ask for another size. Apps declare theirs in
-// app_t.stack: a screen that keeps a line buffer on the stack needs more than
-// 2 KB, and an app that does almost nothing can have less and leave the pool
-// for something else. The floor is what a context switch alone needs below the
-// stack pointer (see K_STACK_GUARD) with room to do anything at all; the
-// ceiling only keeps a typo from swallowing the pool.
-#define K_STACK_MIN   1024
-#define K_STACK_MAX   16384
-
-// Dead space allocated below every stack.
-//
-// A canary at the bottom of a stack only detects an overrun at the next switch
-// out, by which time the overrunning task has already written over whatever was
-// underneath - which, since stacks come from one heap, is another task's stack.
-// The first deliberate overrun test proved that the hard way: an interrupt
-// watchdog timeout on core 0 and a boot loop, with the guard never getting a
-// chance to speak. Giving each stack a run-off area means a modest overrun
-// lands in memory nobody else owns, and the canary lives to report it.
-//
-// 256 is a floor, not a preference. A task that has overrun still has to be
-// switched out, and switching writes roughly 200 bytes BELOW the stack pointer:
-// a base save area per live window, k_yield's own frames, and the 112-byte tick
-// interrupt frame if the tick happens to land there. A run-off area smaller
-// than that just moves the corruption into the next heap block's header.
-#define K_STACK_GUARD 256
+// K_MAX_TASKS, K_MAX_CPUS, K_STACK_SIZE, K_STACK_MIN, K_STACK_MAX,
+// K_STACK_GUARD and K_PRIO_LEVELS are set in smartos_config.h, section 1,
+// each with the reason it is the number it is. The checks at the bottom of
+// this header say what they may not be.
 
 typedef void (*k_task_fn)(void *arg);
 
@@ -69,8 +40,7 @@ typedef void (*k_task_fn)(void *arg);
 #define K_PRIO_HIGH    0
 #define K_PRIO_NORMAL  8
 #define K_PRIO_LOW     16
-#define K_PRIO_IDLE    31
-#define K_PRIO_LEVELS  32
+#define K_PRIO_IDLE    (K_PRIO_LEVELS - 1)
 
 typedef enum {
     K_UNUSED = 0,
@@ -280,3 +250,18 @@ static inline IRAM_ATTR void k_unlock(uint32_t ps)
     k_spin_unlock(&s3_sched_lock);
     __asm__ __volatile__("wsr %0, ps; rsync" :: "a"(ps) : "memory");
 }
+
+// --- what the settings in smartos_config.h may not be ----------------------
+// A configuration that cannot work should say so here, by name, rather than
+// crash on the board. ksync.h holds the other one: K_MAX_TASKS against the
+// width of a wait set.
+static_assert(K_MAX_CPUS == 2,
+              "the kernel names core 1 by number in kcore1 and kpark; "
+              "K_MAX_CPUS is a fact about the chip, not a dial");
+static_assert(K_STACK_MIN > K_STACK_GUARD,
+              "a stack smaller than its own guard area has no room to run in "
+              "- see K_STACK_GUARD in smartos_config.h");
+static_assert(K_STACK_SIZE >= K_STACK_MIN && K_STACK_SIZE <= K_STACK_MAX,
+              "the default stack must be a size a task is allowed to ask for");
+static_assert(K_PRIO_IDLE < K_PRIO_LEVELS && K_PRIO_HIGH < K_PRIO_LEVELS,
+              "every named priority must fit the ready table K_PRIO_LEVELS wide");

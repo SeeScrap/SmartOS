@@ -64,7 +64,7 @@ idf_component_register(
         "kernel/kpark.cpp"
         "kernel/ksync.cpp"
         ${S3_APP_SRCS}
-    INCLUDE_DIRS "."
+    INCLUDE_DIRS "." "../include"
     REQUIRES
         driver          # spi_master, gpio
         esp_adc         # the device service's ADC (stage 4.3c)

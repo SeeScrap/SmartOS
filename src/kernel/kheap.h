@@ -2,6 +2,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 2.5 - the kernel's own allocator. Two pools since stage 5.3c.
 //
@@ -34,14 +36,8 @@
 // app's PSRAM is returned when it ends, whether it closed or was killed.
 // ---------------------------------------------------------------------------
 
-#define KHEAP_INTERNAL_SIZE  (128 * 1024)
-// What the pool settles for when something else has taken the internal heap
-// first - the radio, since stage 6.3 - and how much is left to ESP-IDF, which
-// still has to run the filesystem, the USB console and Wi-Fi itself.
-#define KHEAP_INTERNAL_MIN   (48 * 1024)
-#define KHEAP_IDF_RESERVE    (40 * 1024)
-#define KHEAP_PSRAM_SIZE     (4 * 1024 * 1024)
-#define KHEAP_ALIGN          16          // Xtensa stacks want 16; so does DMA
+// The two pool sizes, what the internal one settles for, what is left to
+// ESP-IDF, and the alignment are set in smartos_config.h, section 2.
 
 typedef enum { KHEAP_INTERNAL = 0, KHEAP_PSRAM, KHEAP_POOLS } kheap_pool_t;
 
@@ -66,3 +62,9 @@ typedef struct {
 void kheap_stats(kheap_stats_t *out);                        // the internal pool
 void kheap_stats_pool(kheap_pool_t pool, kheap_stats_t *out);
 void kheap_dump(void);
+
+static_assert(KHEAP_INTERNAL_MIN <= KHEAP_INTERNAL_SIZE,
+              "the internal pool cannot settle for more than it asked for "
+              "- see section 2 of smartos_config.h");
+static_assert(KHEAP_ALIGN >= 16 && (KHEAP_ALIGN & (KHEAP_ALIGN - 1)) == 0,
+              "KHEAP_ALIGN must be a power of two, and Xtensa stacks want 16");

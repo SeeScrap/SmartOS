@@ -4,6 +4,8 @@
 
 #include "esp_attr.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // A real cross-core spinlock, built on the Xtensa S32C1I compare-and-swap.
 //
@@ -25,12 +27,8 @@
 
 typedef volatile uint32_t k_spin_t;
 
-// Generous on purpose. The console lock is held across printf, and printf
-// blocks until the USB FIFO drains - which, if the host is not reading right
-// then, is far longer than a lock is normally held for. Too short a timeout
-// here does not prevent a hang, it just produces interleaved output from two
-// cores, which was exactly what happened at 10 ms.
-#define K_SPIN_TIMEOUT 40000000u  // order of a quarter second, then give up
+// K_SPIN_TIMEOUT - how long k_spin_lock waits before giving up - is set in
+// smartos_config.h, section 4, with the reason it is as generous as it is.
 
 static inline IRAM_ATTR bool k_spin_try(k_spin_t *lock)
 {
@@ -96,7 +94,7 @@ static inline IRAM_ATTR void k_spin_lock_hard(k_spin_t *lock)
 {
     uint32_t spins = 0;
     while (!k_spin_try(lock)) {
-        if (++spins == 40000000u) {          // ~200 ms at 240 MHz
+        if (++spins == K_SPIN_TIMEOUT) {     // the same patience as k_spin_lock
             s3_spin_stuck = (uint32_t)(uintptr_t)lock;
         }
     }

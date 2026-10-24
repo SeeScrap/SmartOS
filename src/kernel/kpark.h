@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 4.3a - parking core 1 while core 0 touches flash.
 //
@@ -40,10 +42,8 @@
 //   stopped for the duration; its clock is not (see k_int_dispatch).
 // ---------------------------------------------------------------------------
 
-// Core 1's CPU interrupt for the park request. Level 1, level-triggered.
-// Core 1's interrupt allocation is entirely ours - IDF never configures it.
-#define KPARK_CPU_INT        2
-#define KPARK_TIMEOUT_US  5000
+// KPARK_CPU_INT (core 1's interrupt for the park request), KPARK_TIMEOUT_US
+// and KPARK_FLASH_TIMEOUT_US are set in smartos_config.h, section 5.
 
 // EVERY FLASH OPERATION PARKS, WITHOUT BEING ASKED (stage 4.4)
 //
@@ -59,7 +59,6 @@
 // There is no way to refuse from inside the hook: IDF is already committed to
 // the operation. If core 1 does not acknowledge within KPARK_FLASH_TIMEOUT_US
 // the operation goes ahead unparked, and is counted - it should always read 0.
-#define KPARK_FLASH_TIMEOUT_US 50000
 
 // Core 1, once, before interrupts are opened.
 void kpark_init_core1(void);

@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 2.6a, hardened in 4.1 - core 0 as a service processor.
 //
@@ -43,11 +45,7 @@
 // interrupt would remove the latency, and is the natural next step here.
 // ---------------------------------------------------------------------------
 
-#define KMBOX_SLOTS 8
-
-// How long kmbox_call waits for an answer. Jobs that are slow on purpose -
-// a flash erase, later - should use kmbox_call_timeout with their own figure.
-#define KMBOX_TIMEOUT_MS 1000
+// KMBOX_SLOTS and KMBOX_TIMEOUT_MS are set in smartos_config.h, section 3.
 
 typedef enum {
     K_JOB_NONE = 0,
@@ -120,8 +118,7 @@ kmbox_forgot_t kmbox_forget(uint8_t owner, uint32_t owner_gen);
 // without the mailbox knowing anything about it. The handler runs on core 0 in
 // FreeRTOS context, from kmbox_service(), and may use any IDF driver. It
 // returns the result; *status is 0 on success.
-#define KMBOX_OP_EXT  16
-#define KMBOX_OPS     48
+// KMBOX_OP_EXT and KMBOX_OPS are in smartos_config.h, section 3.
 typedef uint32_t (*kmbox_handler_t)(const k_job_t *job, uint32_t *status);
 bool     kmbox_register(uint32_t op, kmbox_handler_t fn);   // core 0, at start-up
 
@@ -129,3 +126,7 @@ bool     kmbox_register(uint32_t op, kmbox_handler_t fn);   // core 0, at start-
 // Runs every posted job it finds. Safe to call as often as you like.
 void     kmbox_service(void);
 uint32_t kmbox_served_count(void);
+
+static_assert(KMBOX_OP_EXT < KMBOX_OPS,
+              "the extension ops start past the end of the op table "
+              "- see section 3 of smartos_config.h");
