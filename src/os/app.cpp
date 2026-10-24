@@ -496,6 +496,14 @@ void app_focus(int id)
     evbus_send(s_mgr_sub, EV_SYS, EV_SRC_SYSTEM, SYS_FOCUS_REQ, (uint32_t)id);
 }
 
+// Sent, not published: the manager's mask is EV_INPUT and EV_TIMER only, so a
+// published EV_SYS would never reach it. Every request to the manager goes
+// this way - see app_focus above.
+void app_redraw_focused(void)
+{
+    evbus_send(s_mgr_sub, EV_SYS, EV_SRC_SYSTEM, SYS_REDRAW, 0);
+}
+
 int app_focused(void) { return s_focus; }
 
 const app_ctx_t *app_get(int id)
@@ -717,6 +725,16 @@ void app_manager_task(void *arg)
                 set_focus(want);
             } else if (ev.a == SYS_FOCUS_CLAIM) {
                 if (s_focus == APP_NONE) set_focus((int)ev.b);
+            } else if (ev.a == SYS_REDRAW) {
+                // Stage 6.4d: the panel missed whatever was drawn while it was
+                // dark - the compositor threw those frames away - and an app
+                // that only draws when something happens has no reason to draw
+                // again. Any frame will do: the first flush after the screen
+                // comes back sends the whole area anyway. Handled here because
+                // `dirty` is core 1's to write, and the screen wakes on core 0.
+                if (s_focus != APP_NONE && s_used[s_focus] == SLOT_LIVE) {
+                    s_ctx[s_focus].dirty = true;
+                }
             } else if (ev.a == SYS_APP_EXITED && s_focus == (int)ev.b) {
                 // Back to Home if there is one; otherwise whoever is left.
                 const int h = s_home;

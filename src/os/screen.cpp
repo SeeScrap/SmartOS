@@ -4,6 +4,7 @@
 
 #include "kernel/kmbox.h"
 #include "kernel/ktime.h"
+#include "os/app.h"
 #include "os/evbus.h"
 #include "os/settings.h"
 #include "os/syslog.h"
@@ -37,6 +38,10 @@ static void wake(void)
     if (!s_off) return;
     backlight_on();
     s_off = 0;
+    // Stage 6.4d: whatever was drawn while the panel was dark never reached it,
+    // so ask the app in front for one more frame. The manager does the work on
+    // core 1, where the flag it sets belongs.
+    app_redraw_focused();
     slog("sys", "screen on");
 }
 

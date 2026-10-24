@@ -66,12 +66,10 @@ bool ui_list_next(ui_iter_t *it)
 
 int ui_list_bottom(const ui_list_t *l, const ui_rows_t *rows)
 {
+    // The same walk ui_list_next does, so it is that walk: the rule about a
+    // row that does not fit lives in one place and cannot drift.
     int y = rows->y;
-    for (int i = l->top; i < rows->n; ++i) {
-        const int h = row_height(rows, i);
-        if (y + h > rows->y_end) break;
-        y += h;
-    }
+    for (ui_iter_t it = ui_list_begin(l, rows); ui_list_next(&it); ) y = it.y + it.h;
     return y;
 }
 

@@ -110,6 +110,25 @@ void sys63_radio_test(void)
         // the event loop, which are created once per boot and never undone.
         sdk_case("and gives it back", !radio_is_up() && lost < 20000, d);
     }
+
+    // 7. Up again (stage 6.4d). The shell offers "wifi down" and "wifi up" as
+    //    two words, so this is one keystroke away for anyone, and nothing had
+    //    ever run it: the network interface and the event loop are created on
+    //    the first start and never torn down, so the second start brings Wi-Fi
+    //    up underneath glue that belonged to the first one. A radio that comes
+    //    back but no longer hears anything would look exactly like a radio
+    //    that works, which is why the scan is part of the check.
+    if (up) {
+        const bool again = radio_up();
+        static radio_ap_t ap[8];
+        uint32_t ms = 0;
+        const int n = again ? radio_scan(ap, 8, &ms) : -1;
+        snprintf(d, sizeof(d), "second start: %s, scan returned %d in %lu ms",
+                 again ? "up" : "DID NOT START", n, (unsigned long)ms);
+        sdk_case("stopped and started again", again && radio_is_up() && n >= 0, d);
+        radio_down();
+        pump(200);
+    }
 }
 
 #endif // S3_TEST_APPS

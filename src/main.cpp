@@ -1326,7 +1326,13 @@ void system_pass(void)
     bool redraw = false;
     ev_t ev;
     while (evbus_try_recv(s_status_sub, &ev)) redraw = true;   // focus or clock
-    if (redraw) { status_draw(); fb_flush(&s_fb); }
+    // Stage 6.4d: and not while the panel is dark. Stage 5.4e stopped the app
+    // area going out to a screen nobody can see, but the status bar has its own
+    // way to the panel and kept taking it - its clock ticks once a second
+    // whatever the backlight is doing, so a board left on a desk was still
+    // pushing the bar down the SPI bus all night. The bar is redrawn by the
+    // next tick after the screen comes back.
+    if (redraw && !screen_is_off()) { status_draw(); fb_flush(&s_fb); }
 
     while (app_compositor_poll()) { }
     settings_poll();                // a settled change reaches flash

@@ -167,6 +167,7 @@ enum {
     SYS_FOCUS_CLAIM   = 8,   // to the manager: focus b, but only if nobody has it
     SYS_SETTING_CHANGED = 9, // published: a system setting changed (os/settings.h)
     SYS_APPS_CHANGED   = 10, // published: an app opened or ended (stage 5.5)
+    SYS_REDRAW         = 11, // to the manager: the app in front should draw again
 };
 #define APP_FOCUS_NEXT 0xFE
 #define APP_NONE       0xFF
@@ -334,6 +335,12 @@ void     app_last_forgot(uint32_t *claimed, uint32_t *posted, uint32_t *done);  
 
 // Requests focus for an app, or APP_FOCUS_NEXT. Handled by the manager.
 void app_focus(int id);
+
+// Stage 6.4d: asks the app in front for one more frame. What the screen uses
+// when the backlight comes back, because the frames drawn while the panel was
+// dark were thrown away and an app that draws only on events has no reason to
+// draw again. Safe from either core.
+void app_redraw_focused(void);
 
 int              app_focused(void);          // APP_NONE if nobody
 const app_ctx_t *app_get(int id);            // null if that slot is empty

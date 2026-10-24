@@ -114,9 +114,21 @@ static void paint(fb_t *fb, bool all)
     else     fb_flush(fb);
 }
 
+// True while the callback is inside paint(). esp_timer_stop() promises that no
+// NEW callback will start; it says nothing about one already running - and this
+// one blocks inside the SPI driver, which lets the main task through to the
+// panel behind its back. Two tasks in lcd_bus.cpp then share its transaction
+// slots, and the wait there is portMAX_DELAY: one lost transaction hangs the
+// boot for good. So end() waits for the callback in flight before it touches
+// the panel.
+static volatile bool s_in_tick;
+
 static void tick(void *)
 {
-    if (s_fb) paint(s_fb, false);
+    if (!s_fb) return;
+    s_in_tick = true;
+    paint(s_fb, false);
+    s_in_tick = false;
 }
 
 void boot_screen_begin(fb_t *fb)
@@ -177,7 +189,8 @@ void boot_screen_end(void)
 {
     if (!s_fb) return;
     if (s_tick) {                    // the spinner stops before the panel changes hands
-        esp_timer_stop(s_tick);
+        esp_timer_stop(s_tick);          // no new callback starts after this
+        while (s_in_tick) hal_delay_ms(1);   // ...and the one in flight finishes
         esp_timer_delete(s_tick);
         s_tick = nullptr;
     }
