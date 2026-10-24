@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "os/app.h"
 
 // ---------------------------------------------------------------------------
@@ -39,12 +41,6 @@
 // the next line that gets through says how many went missing. System code on core 0 is trusted and not limited.
 // ---------------------------------------------------------------------------
 
-#define SYSLOG_MAX     (32 * 1024)
-#define SYSLOG_LINE    120
-#define SYSLOG_RATE    20              // lines a second, sustained
-#define SYSLOG_BURST   40
-#define SYSLOG_BUF     2048            // lines wait in RAM, at most this many bytes
-#define SYSLOG_FLUSH_MS 2000           // ...for at most this long (see syslog.cpp)
 
 // --- core 0, FreeRTOS context ------------------------------------------------------
 void     slog_init(uint32_t boot);     // after fs_init; boot is this boot's number

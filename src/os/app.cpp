@@ -245,7 +245,7 @@ void app_system_init(fb_t *screen)
     // The manager's queue exists before core 1 does, so no input published in
     // between is lost for want of somewhere to go.
     // EV_TIMER too, since 5.5: a held DOWN waits APP_CHORD_MS for a BACK.
-    s_mgr_sub = evbus_subscribe("appmgr", EV_MASK(EV_INPUT) | EV_MASK(EV_TIMER), s_mgr_q, 32);
+    s_mgr_sub = evbus_subscribe("appmgr", EV_MASK(EV_INPUT) | EV_MASK(EV_TIMER), EV_Q(s_mgr_q));
 }
 
 app_can_t app_can_start(const app_t *app)
@@ -325,7 +325,7 @@ int app_start(const app_t *app)
         memset(c->user, 0, app->user_size);
     }
 
-    c->sub = evbus_subscribe(app->name, app->mask, s_queues[id], APP_Q_LEN);
+    c->sub = evbus_subscribe(app->name, app->mask, EV_Q(s_queues[id]));
     if (c->sub < 0) {
         if (c->user) kfree(c->user);
         s_used[id] = SLOT_FREE;

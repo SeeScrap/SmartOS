@@ -1344,7 +1344,7 @@ void system_pass(void)
 static void system_loop(void)
 {
     static ev_t status_q[16];
-    s_status_sub = evbus_subscribe("status", EV_MASK(EV_SYS), status_q, 16);
+    s_status_sub = evbus_subscribe("status", EV_MASK(EV_SYS), EV_Q(status_q));
     evbus_timer_start(s_status_sub, 1000, 1);   // the clock in the corner
 
 #ifndef S3_KERNEL_TEST_BUILD

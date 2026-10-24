@@ -1,6 +1,8 @@
 #pragma once
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "gfx/fb.h"
 
 // ---------------------------------------------------------------------------
@@ -36,8 +38,6 @@
 // installed, so output - stdio from core 0, the ROM console from core 1 - is
 // exactly as before.
 // ---------------------------------------------------------------------------
-
-#define SHELL_LINE 96            // longest command line, including arguments
 
 void     shell_init(void);       // core 0, before the main loop: the first prompt
 void     shell_poll(void);       // core 0's main loop: reads input, runs whole lines

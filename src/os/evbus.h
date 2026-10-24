@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "kernel/ksync.h"
 
 // ---------------------------------------------------------------------------
@@ -82,8 +84,14 @@
 // ห้ามถือสลับลำดับกัน และห้ามเรียก klog() ขณะถือล็อกของบัส
 // ---------------------------------------------------------------------------
 
-#define EVBUS_MAX_SUBS   12      // apps (up to APP_MAX) plus the app manager and the status bar
-#define EVBUS_MAX_TIMERS  8
+// EVBUS_MAX_SUBS, EVBUS_MAX_TIMERS and EVBUS_TIMER_MAX_SLEEP_MS are set in
+// smartos_config.h, section 7.
+static_assert(EVBUS_MAX_SUBS >= APP_MAX + 3,
+              "every open app needs a slot, and so do the app manager, the "
+              "status bar and the screen timeout - see smartos_config.h");
+
+// Passes an event queue and its length together, so the two cannot disagree.
+#define EV_Q(arr)  (arr), (int)(sizeof(arr) / sizeof(*(arr)))
 
 // Event types. A subscriber's mask is a set of (1u << type).
 enum {
@@ -170,5 +178,4 @@ void evbus_timer_stop(int timer);
 // The service that fires them. Create as a kernel task on core 1. It sleeps
 // until the earliest deadline, but never longer than EVBUS_TIMER_MAX_SLEEP_MS,
 // which bounds how late a newly started timer can be for its first period.
-#define EVBUS_TIMER_MAX_SLEEP_MS 10
 void evbus_timer_task(void *arg);

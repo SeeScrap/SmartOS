@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "os/app.h"
 
 // ---------------------------------------------------------------------------
@@ -24,9 +26,6 @@
 // when the user commits to a choice - not on every keypress.
 // ---------------------------------------------------------------------------
 
-#define SETTINGS_MAX      16
-#define SETTINGS_KEY_MAX  15
-#define SETTINGS_SAVE_MS  1000
 
 typedef void (*settings_hook_t)(int32_t value);
 

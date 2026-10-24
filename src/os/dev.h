@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "os/app.h"
 
 // ---------------------------------------------------------------------------
@@ -50,8 +52,6 @@ typedef enum {
 #define DEV_ERR_IO     -4   // the driver failed, or core 0 did not answer
 #define DEV_ERR_MODE   -5   // write to a pin that is not an output
 
-#define DEV_STREAMS        4
-#define DEV_STREAM_MIN_MS  2    // 500 samples a second per stream at most
 
 // --- for apps: kernel tasks on core 1 -------------------------------------------
 int  dev_gpio_mode(int pin, dev_mode_t mode);

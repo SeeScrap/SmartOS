@@ -38,6 +38,13 @@
 //   3. The cross-core mailbox / กล่องข้อความข้ามคอร์
 //   4. Locks / ล็อก
 //   5. Parking core 1 for flash / การพักคอร์ 1 ตอนเขียนแฟลช
+//   6. Apps / แอป
+//   7. The event bus / บัสเหตุการณ์
+//   8. Files / ไฟล์
+//   9. The system log / บันทึกระบบ
+//  10. Saved settings / ค่าที่จำไว้ในแฟลช
+//  11. The shell / เชลล์
+//  12. Pins, ADC and sampling / ขา ADC และการสุ่มสัญญาณ
 // ---------------------------------------------------------------------------
 
 
@@ -193,4 +200,157 @@
 #endif
 #ifndef KPARK_FLASH_TIMEOUT_US
 #define KPARK_FLASH_TIMEOUT_US 50000
+#endif
+
+
+// ===========================================================================
+// 6. APPS / แอป                                              (os/app.h)
+// ===========================================================================
+
+// How many apps may be open at once.
+#ifndef APP_MAX
+#define APP_MAX        8
+#endif
+
+// Stage 5.5 - DOWN held, then BACK: the app in front is minimised. It keeps
+// running; Home lists it under "Running" and opening it again brings it back.
+//
+// A DOWN press is held back this long to see whether BACK follows. A tap is
+// not delayed - its release flushes the held press at once - so only a DOWN
+// that is held down waits, and only by this much.
+#ifndef APP_CHORD_MS
+#define APP_CHORD_MS   150
+#endif
+
+// Events waiting for one app.
+#ifndef APP_Q_LEN
+#define APP_Q_LEN      16
+#endif
+
+// The top of the app's area: the status bar sits above it.
+#ifndef APP_AREA_Y
+#define APP_AREA_Y     24
+#endif
+
+// How many apps may be built into the firmware and listed in Home.
+#ifndef APP_REGISTRY_MAX
+#define APP_REGISTRY_MAX 16
+#endif
+
+#ifndef APP_MEM_RESERVE
+#define APP_MEM_RESERVE 8192        // kernel pool kept free for the kernel itself
+#endif
+
+// No single app may take more than this of the kernel pool, stack and state
+// together. Without a ceiling, "does it fit" depended on what else was open:
+// the same app started on a quiet board and was refused on a busy one, and
+// one careless app could leave the pool with nothing for the next. A quarter
+// of the pool is a 16 KB stack (K_STACK_MAX) and still 16 KB of state, far
+// past anything here: the largest app today is the task manager at about 3 KB.
+#ifndef APP_KERNEL_MAX
+#define APP_KERNEL_MAX (KHEAP_INTERNAL_SIZE / 4)
+#endif
+
+// An app asked to finish that has not ended this long afterwards - one stuck
+// in a loop never reads the request - is killed (stage 5.2).
+#ifndef APP_STOP_GRACE_MS
+#define APP_STOP_GRACE_MS 2000
+#endif
+
+
+// ===========================================================================
+// 7. THE EVENT BUS / บัสเหตุการณ์                           (os/evbus.h)
+// ===========================================================================
+
+// One slot per open app, plus the three the system always has - the app
+// manager, the status bar and the screen timeout - and one spare. The
+// static_assert in evbus.h holds it to at least that.
+#ifndef EVBUS_MAX_SUBS
+#define EVBUS_MAX_SUBS   (APP_MAX + 4)
+#endif
+
+#ifndef EVBUS_MAX_TIMERS
+#define EVBUS_MAX_TIMERS  8
+#endif
+
+// The timer service sleeps until the earliest deadline, but never longer than
+// this, which bounds how late a newly started timer can be for its first
+// period.
+#ifndef EVBUS_TIMER_MAX_SLEEP_MS
+#define EVBUS_TIMER_MAX_SLEEP_MS 10
+#endif
+
+
+// ===========================================================================
+// 8. FILES / ไฟล์                                              (os/fs.h)
+// ===========================================================================
+
+#ifndef FS_NAME_MAX
+#define FS_NAME_MAX   32
+#endif
+
+
+// ===========================================================================
+// 9. THE SYSTEM LOG / บันทึกระบบ                            (os/syslog.h)
+// ===========================================================================
+
+// Lines from kernel tasks and apps share a budget: SYSLOG_BURST at once,
+// refilled at SYSLOG_RATE a second. Past it they are dropped and counted, and
+// the next line that gets through says how many went missing. System code on
+// core 0 is trusted and not limited.
+#ifndef SYSLOG_MAX
+#define SYSLOG_MAX     (32 * 1024)
+#endif
+#ifndef SYSLOG_LINE
+#define SYSLOG_LINE    120
+#endif
+#ifndef SYSLOG_RATE
+#define SYSLOG_RATE    20              // lines a second, sustained
+#endif
+#ifndef SYSLOG_BURST
+#define SYSLOG_BURST   40
+#endif
+#ifndef SYSLOG_BUF
+#define SYSLOG_BUF     2048            // lines wait in RAM, at most this many bytes
+#endif
+#ifndef SYSLOG_FLUSH_MS
+#define SYSLOG_FLUSH_MS 2000           // ...for at most this long (see syslog.cpp)
+#endif
+
+
+// ===========================================================================
+// 10. SAVED SETTINGS / ค่าที่จำไว้ในแฟลช                   (os/settings.h)
+// ===========================================================================
+// How many settings the table holds - not their values. The three the system
+// ships with (backlight, screenoff, wallpaper) are registered in main.cpp.
+
+#ifndef SETTINGS_MAX
+#define SETTINGS_MAX      16
+#endif
+#ifndef SETTINGS_KEY_MAX
+#define SETTINGS_KEY_MAX  15
+#endif
+#ifndef SETTINGS_SAVE_MS
+#define SETTINGS_SAVE_MS  1000
+#endif
+
+
+// ===========================================================================
+// 11. THE SHELL / เชลล์                                     (os/shell.h)
+// ===========================================================================
+
+#ifndef SHELL_LINE
+#define SHELL_LINE 96            // longest command line, including arguments
+#endif
+
+
+// ===========================================================================
+// 12. PINS, ADC AND SAMPLING / ขา ADC และการสุ่มสัญญาณ        (os/dev.h)
+// ===========================================================================
+
+#ifndef DEV_STREAMS
+#define DEV_STREAMS        4
+#endif
+#ifndef DEV_STREAM_MIN_MS
+#define DEV_STREAM_MIN_MS  2    // 500 samples a second per stream at most
 #endif
