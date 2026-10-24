@@ -1,0 +1,132 @@
+overlapping
+edge to edge
+opposite corners
+box outline, # sides
+# into # slots
+# chars, scale #
+off the right edge
+clean press and release
+contact bounce, # edges/# ms
+# ms glitch
+held for # ms
+two buttons, one sample
+one bouncing, one clean
+# events into # slots
+fan-out by type mask
+targeted send
+one full subscriber
+unsubscribe
+timers go with subscriber
+subscriber table full
+k_snprintf
+fb_line diagonal
+fb_line slope and clip
+fb_circle / fb_fill_circle
+k_rand
+pin rules
+ADC pins
+registry
+headers are skipped
+the ends wrap
+scrolls to the chosen row
+a row that half fits is not
+scrolling clamps
+the bar clamps
+two presses, same subject
+it types what it points at
+held arrows move, held OK do
+the edges wrap
+shift
+delete, and a line that is f
+# reads ok, # failed, # re
+kernel clock # ms vs esp_t
+log write, parked
+boot recorded
+settings applied
+boot screen
+boot starts no app
+kernel memory
+OK opens the chosen app
+hold BACK closes it
+reopened from scratch
+closed again
+starting leaves Home focused
+focus moves on request
+input goes to focus only
+hold BACK closes the app
+frame pacing
+stop the focused app
+restart gets a slot
+ADC stream to an app
+ADC follows the pad
+snake hits the wall
+snake restarts on OK
+stream ends with its app
+write, read back
+replace, shorter
+append x#
+list
+remove
+bad names refused
+# KB file
+sandbox
+every op parked
+scope records # s
+brightness via the app
+Home remembers
+apps in the log
+log line cost
+timed flush
+rotation
+log app shows the tail
+rate limit
+drops reported
+kill: spinning
+kill: sleeping
+kill: blocked, then reopen
+kill: mid-draw
+kill: mailbox call in flight
+hold BACK on a stuck app
+Home refused
+nothing left behind
+core # books balance
+busy = sum of its tasks
+system at rest
+one spinning app
+two spinning apps
+three spinning apps
+task manager
+close from the task manager
+performance page
+back to processes
+app PSRAM
+a sleeping app
+DOWN+BACK minimises
+Home switches back to it
+a tap is not delayed, a hold
+no room: refused, not starte
+room again once it closes
+every app says what it is
+clearing the log asks first
+screen off, and the press th
+# means never
+an app picks its stack
+# KB unless it says otherwis
+more timers than there are
+state past what one app may
+the bus runs out of slots
+no frames while the screen i
+a ceiling for one app
+Home shows the picture
+the setting turns it off
+and on again
+what the background costs
+one radio, #.# GHz only
+channels to frequencies
+the radio starts
+the channel plan
+a scan of the band
+and gives it back
+stopped and started again
+typed on the board, kept on
+and it is there next time

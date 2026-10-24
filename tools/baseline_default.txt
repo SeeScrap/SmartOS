@@ -1,0 +1,48 @@
+overlapping
+edge to edge
+opposite corners
+box outline, # sides
+# into # slots
+# chars, scale #
+off the right edge
+clean press and release
+contact bounce, # edges/# ms
+# ms glitch
+held for # ms
+two buttons, one sample
+one bouncing, one clean
+# events into # slots
+fan-out by type mask
+targeted send
+one full subscriber
+unsubscribe
+timers go with subscriber
+subscriber table full
+k_snprintf
+fb_line diagonal
+fb_line slope and clip
+fb_circle / fb_fill_circle
+k_rand
+pin rules
+ADC pins
+registry
+headers are skipped
+the ends wrap
+scrolls to the chosen row
+a row that half fits is not
+scrolling clamps
+the bar clamps
+two presses, same subject
+it types what it points at
+held arrows move, held OK do
+the edges wrap
+shift
+delete, and a line that is f
+# reads ok, # failed, # re
+kernel clock # ms vs esp_t
+log write, parked
+boot recorded
+settings applied
+boot screen
+boot starts no app
+kernel memory
