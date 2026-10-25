@@ -2,14 +2,11 @@
 
 #include <string.h>
 
-#include "port/kport.h"
-#include "esp_rom_sys.h"
 #include "kernel/klog.h"
 #include "kernel/kspin.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
 
 // The slots must be somewhere both cores can reach with the flash cache off,
 // and in internal SRAM specifically: S32C1I, which every hand-over below uses,
@@ -43,7 +40,7 @@ K_IRAM int kmbox_post(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2)
         // atomics on slots that are obviously taken.
         if (s_slots[i].state != KMB_EMPTY) continue;
 #ifdef SMARTOS_TEST_MBOX_STRESS
-        esp_rom_delay_us(20);    // test only: hold the race window open
+        kport_delay_us(20);      // test only: hold the race window open
 #endif
         // The look is only a hint. Another poster - on the other core, or on
         // this one after a preemption right here - may have seen the same
@@ -169,7 +166,7 @@ K_IRAM void kmbox_service(void)
             case K_JOB_LOG:
                 // This is the job core 1 cannot do for itself: a real printf,
                 // with the locks that come with it, on the core that owns them.
-                logf("[core1 via core0] %s\n", (const char *)(uintptr_t)j->a0);
+                kport_printf("[core1 via core0] %s\n", (const char *)(uintptr_t)j->a0);
                 j->result = 0;
                 j->status = 0;
                 break;
@@ -184,7 +181,7 @@ K_IRAM void kmbox_service(void)
             }
 
             case K_JOB_SLEEP:
-                hal_delay_ms(j->a0);
+                kport_yield_ms(j->a0);
                 j->result = j->a0;
                 j->status = 0;
                 break;

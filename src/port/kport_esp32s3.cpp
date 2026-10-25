@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include "kernel/kspin.h"
 
 // The locks the kernel declares and the chip owns.
@@ -42,4 +45,13 @@ extern "C" void kport_println(const char *s)
 {
     if (s && *s) fputs(s, stdout);
     fputs("\n", stdout);
+}
+
+
+// Core 0 only. hal_delay_ms() is the same call; the kernel reaches it through
+// here so that kernel/kmbox.cpp does not have to include the HAL, which would
+// pull FreeRTOS into the kernel directory.
+extern "C" void kport_yield_ms(uint32_t ms)
+{
+    vTaskDelay(ms / portTICK_PERIOD_MS);
 }

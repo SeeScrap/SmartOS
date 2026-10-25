@@ -78,3 +78,16 @@
 extern "C" void kport_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 extern "C" void kport_vprintf(const char *fmt, va_list ap);
 extern "C" void kport_println(const char *s);
+
+
+// --- waiting ---------------------------------------------------------------
+// kport_delay_us spins. It is used where there is nothing to yield to - core 1
+// waking up, and the mailbox stress build holding a race window open - so it
+// is inline and goes nowhere near a scheduler.
+static inline void kport_delay_us(uint32_t us) { esp_rom_delay_us(us); }
+
+// kport_yield_ms gives the core up for a while, and is CORE 0 ONLY: it goes
+// into FreeRTOS, which core 1 has no task control block for. The mailbox's
+// K_JOB_SLEEP handler is the caller - core 1 asks core 0 to wait, precisely
+// because core 1 cannot wait this way itself.
+extern "C" void kport_yield_ms(uint32_t ms);
