@@ -1,17 +1,17 @@
 overlapping
 edge to edge
 opposite corners
-box outline, # sides
-# into # slots
-# chars, scale #
+box outline, 4 sides
+12 into 8 slots
+43 chars, scale 1
 off the right edge
 clean press and release
-contact bounce, # edges/# ms
-# ms glitch
-held for # ms
+contact bounce, 5 edges/10 ms
+8 ms glitch
+held for 1000 ms
 two buttons, one sample
 one bouncing, one clean
-# events into # slots
+40 events into 32 slots
 fan-out by type mask
 targeted send
 one full subscriber
@@ -64,14 +64,14 @@ snake restarts on OK
 stream ends with its app
 write, read back
 replace, shorter
-append x#
+append x3
 list
 remove
 bad names refused
-# KB file
+16 KB file
 sandbox
 every op parked
-scope records # s
+scope records 2 s
 brightness via the app
 Home remembers
 apps in the log
@@ -89,7 +89,7 @@ kill: mailbox call in flight
 hold BACK on a stuck app
 Home refused
 nothing left behind
-core # books balance
+core 1 books balance
 busy = sum of its tasks
 system at rest
 one spinning app
@@ -109,9 +109,9 @@ room again once it closes
 every app says what it is
 clearing the log asks first
 screen off, and the press th
-# means never
+0 means never
 an app picks its stack
-# KB unless it says otherwis
+2 KB unless it says otherwis
 more timers than there are
 state past what one app may
 the bus runs out of slots
@@ -121,7 +121,7 @@ Home shows the picture
 the setting turns it off
 and on again
 what the background costs
-one radio, #.# GHz only
+one radio, 2.4 GHz only
 channels to frequencies
 the radio starts
 the channel plan

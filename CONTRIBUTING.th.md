@@ -108,8 +108,8 @@ stage 5.4c แก้ไป
 
 - ตรรกะที่ไม่ต้องใช้ฮาร์ดแวร์ → เพิ่มใน `tests/test_ui.cpp` หรือไฟล์ข้างเคียง
   จะรันทุกครั้งที่บูต
-- สิ่งที่ต้องมีแอปทำงาน → `tests/test_apps.cpp` หรือไฟล์ใหม่ แล้วเรียกจาก
-  `main.cpp` ภายใน `#ifdef`
+- สิ่งที่ต้องมีแอปทำงาน → `tests/test_apps.cpp` หรือไฟล์ใหม่ ประกาศจุดเข้าไว้ใน
+  `tests/tests.h` แล้วเรียกจาก `system_loop()` ใน `src/system.cpp` ภายใน `#ifdef`
 - เครื่องมือช่วย — `pump`, `press`, `tap`, `wait_gone`, `count_colour`, `log_has`
   — อยู่ใน `tests/harness.h`
 

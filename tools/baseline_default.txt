@@ -1,17 +1,17 @@
 overlapping
 edge to edge
 opposite corners
-box outline, # sides
-# into # slots
-# chars, scale #
+box outline, 4 sides
+12 into 8 slots
+43 chars, scale 1
 off the right edge
 clean press and release
-contact bounce, # edges/# ms
-# ms glitch
-held for # ms
+contact bounce, 5 edges/10 ms
+8 ms glitch
+held for 1000 ms
 two buttons, one sample
 one bouncing, one clean
-# events into # slots
+40 events into 32 slots
 fan-out by type mask
 targeted send
 one full subscriber

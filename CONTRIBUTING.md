@@ -113,8 +113,9 @@ build does not carry them.
 
 - Logic that needs no hardware → a new case in `tests/test_ui.cpp` or its
   neighbours; it runs on every boot.
-- Something that needs apps → `tests/test_apps.cpp` or a file of its own, and
-  a call from `main.cpp` inside the `#ifdef`.
+- Something that needs apps → `tests/test_apps.cpp` or a file of its own, its
+  entry point declared in `tests/tests.h`, and a call from `system_loop()` in
+  `src/system.cpp` inside the `#ifdef`.
 - The harness - `pump`, `press`, `tap`, `wait_gone`, `count_colour`, `log_has`
   - is in `tests/harness.h`.
 

@@ -46,9 +46,7 @@ def case_name(text):
     head = SPLIT.split(text, 1)[0]
     if head == text:                     # the name overflowed its column
         head = text[:NAME_COL]
-    # Several names carry a measured number ("kernel clock 199 ms vs ..."),
-    # which would make the baseline differ on every run.
-    return re.sub(r"\d+", "#", head).strip()
+    return head.strip()
 
 
 DEFAULT_BASELINE = "tools/baseline_default.txt"

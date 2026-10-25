@@ -91,10 +91,21 @@ here was measured against. `managed_components/` is not in the repository
 because that file is what restores it.
 
 **The board checks itself at every boot** and prints the result over USB, so
-`-t monitor` is not optional reading: 51 cases on an ordinary boot, and with
-`-D S3_TEST_APPS` in `build_flags`, 134. The other test builds - the kernel
-under load, a full filesystem, an app that never yields - are listed with what
-each one must print at the bottom of [platformio.ini](platformio.ini).
+`-t monitor` is not optional reading: 48 cases on an ordinary boot, and with
+`-D S3_TEST_APPS` in `build_flags`, 132. `python tools/boot_check.py` resets
+the board, counts them for you and compares the case names against a committed
+baseline, so a test that quietly stops running is noticed. The other test
+builds - the kernel under load, a full filesystem, an app that never yields -
+are listed with what each one must print at the bottom of
+[platformio.ini](platformio.ini).
+
+> **A correction.** The stage-by-stage record below quotes higher figures -
+> 51 and 134, and later 51 and 135. Those came from counting every line of
+> the boot log that ends in `OK`, and three of those lines are not tests:
+> ESP-IDF's own `SPI SRAM memory test OK`, and the `[consumer]` and `[mbox]`
+> demo tasks reporting their own sums. Nothing regressed; the count was
+> wrong, not the firmware. The per-stage numbers are left as they were
+> written, because that is what was measured at the time.
 
 The host-side tools in [tools/](tools/) talk to the board over the same USB
 connection: `shell_test.py` drives the shell through its whole command set,

@@ -72,7 +72,6 @@ extern "C" volatile uint32_t s3_spin_stuck;
 #include "kernel/kpark.h"
 #include "kernel/klog.h"
 
-static uint16_t *s_framebuffer = nullptr;
 
 // Why the chip last reset, in words. Used by the boot report on the console
 // and, since stage 4.5, by the first line each boot writes to the system log.
