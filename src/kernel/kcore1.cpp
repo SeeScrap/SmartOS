@@ -16,7 +16,7 @@
 // path.
 extern "C" void ets_set_appcpu_boot_addr(uint32_t start);
 
-// Our own vector table (kernel/kvectors.S).
+// Our own vector table (arch/xtensa/kvectors.S).
 //
 // Stage 2.1 pointed core 1 at IDF's table; stage 2.2 replaces it, because IDF's
 // exception dispatch indexes its handler table by core id against a table that
