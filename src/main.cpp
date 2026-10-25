@@ -1084,8 +1084,11 @@ static void gfx_demo_scene(void)
 
     fb_clear(&s_fb, fb_rgb(16, 20, 32));
 
-    fb_fill_rect(&s_fb, 0, 0, s_fb.w, 24, fb_rgb(40, 48, 72));
-    fb_hline(&s_fb, 0, 24, s_fb.w, FB_CYAN);
+    // The same bar status_draw() paints, so the demo shows what the system
+    // really looks like: APP_AREA_Y - 1, not 24. The separator is the LAST row
+    // before the app area, and at 24 it sat on the app area's first row.
+    fb_fill_rect(&s_fb, 0, 0, s_fb.w, APP_AREA_Y - 1, fb_rgb(40, 48, 72));
+    fb_hline(&s_fb, 0, APP_AREA_Y - 1, s_fb.w, FB_CYAN);
 
     const uint16_t swatch[] = { FB_RED, FB_GREEN, FB_BLUE, FB_YELLOW,
                                 FB_CYAN, FB_MAGENTA, FB_WHITE, FB_GREY };
