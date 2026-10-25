@@ -21,14 +21,14 @@
  * table self-contained. Jumping into IDF's copy instead would also risk falling
  * outside the +/-128 KB range of a j instruction once IRAM fills up.
  *
- * Every fault vector records machine state into s3_fault_frame and then spins.
+ * Every fault vector records machine state into k_fault_frame and then spins.
  * It deliberately does NOT print: printing means calling a C function, and
  * calling C from exception context means fixing up PS, WINDOWBASE and
  * WINDOWSTART by hand first. Core 0 polls the frame and reports from a context
  * where printf is actually safe.
  * ------------------------------------------------------------------------- */
 
-/* Offsets into s3_fault_frame - must match k_fault_frame_t in kfault.h */
+/* Offsets into k_fault_frame - must match k_fault_frame_t in kfault.h */
 #define FF_A0        0x00
 #define FF_SP        0x04
 #define FF_PC        0x08
@@ -44,35 +44,35 @@
 
 /* Stage 2.4 tick state. Lives in DRAM so the ISR can reach it with the cache
  * off, and so core 0 can read the counters without disturbing core 1. */
-    .global s3_tick_count
-    .type   s3_tick_count, @object
-s3_tick_count:
+    .global k_tick_count
+    .type   k_tick_count, @object
+k_tick_count:
     .word   0
-    .size   s3_tick_count, 4
+    .size   k_tick_count, 4
 
-    .global s3_need_resched
-    .type   s3_need_resched, @object
-s3_need_resched:
+    .global k_need_resched
+    .type   k_need_resched, @object
+k_need_resched:
     .word   0
-    .size   s3_need_resched, 4
+    .size   k_need_resched, 4
 
-    .global s3_tick_cycles
-    .type   s3_tick_cycles, @object
-s3_tick_cycles:
+    .global k_tick_cycles
+    .type   k_tick_cycles, @object
+k_tick_cycles:
     .word   240000              /* replaced by k_tick_start() */
-    .size   s3_tick_cycles, 4
+    .size   k_tick_cycles, 4
 
-    .global s3_chain_end_hit
-    .type   s3_chain_end_hit, @object
-s3_chain_end_hit:
+    .global k_chain_end_hit
+    .type   k_chain_end_hit, @object
+k_chain_end_hit:
     .word   0
-    .size   s3_chain_end_hit, 4
+    .size   k_chain_end_hit, 4
 
-    .global s3_fault_frame
-    .type   s3_fault_frame, @object
-s3_fault_frame:
+    .global k_fault_frame
+    .type   k_fault_frame, @object
+k_fault_frame:
     .space  40
-    .size   s3_fault_frame, . - s3_fault_frame
+    .size   k_fault_frame, . - k_fault_frame
 
 
 /* ---------------------------------------------------------------------------
@@ -82,9 +82,9 @@ s3_fault_frame:
  * ------------------------------------------------------------------------- */
     .section .iram1.s3vectors, "ax"
     .align  1024
-    .global s3_vector_table
-    .type   s3_vector_table, @function
-s3_vector_table:
+    .global k_vector_table
+    .type   k_vector_table, @function
+k_vector_table:
 
 /* --- 0x000  window overflow, call4 -------------------------------------- */
     .org    0x000
@@ -230,7 +230,7 @@ _s3_DoubleExceptionVector:
     call0   _s3_fault_common
 
     .org    0x400
-    .size   s3_vector_table, . - s3_vector_table
+    .size   k_vector_table, . - k_vector_table
 
 
 /* ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ _s3_DoubleExceptionVector:
 _s3_fault_common:
     wsr     a0, excsave2            /* park the vector tag; a0 becomes scratch */
 
-    movi    a0, s3_fault_frame
+    movi    a0, k_fault_frame
     s32i    a1, a0, FF_SP           /* a1 is free to use as scratch from here */
 
     rsr     a1, excsave1            /* the faulting code's original a0 */

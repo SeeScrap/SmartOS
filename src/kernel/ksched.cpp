@@ -16,7 +16,7 @@
 extern "C" void k_ctx_switch(uint32_t **old_sp, uint32_t *new_sp);
 extern "C" void k_task_trampoline(void);
 extern "C" void k_chain_end(void);
-extern "C" volatile uint32_t s3_chain_end_hit;
+extern "C" volatile uint32_t k_chain_end_hit;
 
 // Stage 2.5 moved task stacks onto kmalloc. Before that they came from a fixed
 // array, because the alternative was heap_caps_malloc() and that takes a
@@ -222,7 +222,7 @@ IRAM_ATTR int k_task_create_stack(const char *name, k_task_fn fn, void *arg,
 // sleeping task forever.
 static IRAM_ATTR void wake_due_sleepers(void)
 {
-    uint32_t now = s3_tick_count;
+    uint32_t now = k_tick_count;
     for (int i = 0; i < K_MAX_TASKS; ++i) {
         if (s_tcb[i].state == K_SLEEPING &&
             (int32_t)(now - s_tcb[i].wake_tick) >= 0) {
@@ -659,7 +659,7 @@ extern "C" IRAM_ATTR void k_task_launch(void)
     // interrupts masked, and it is not coming back to undo either. A task
     // starting for the first time is the one place the release has to be done
     // by hand rather than falling out of a matching k_unlock.
-    k_spin_unlock(&s3_sched_lock);
+    k_spin_unlock(&k_sched_lock);
 
     uint32_t old;
     __asm__ __volatile__("rsil %0, 0" : "=a"(old) :: "memory");

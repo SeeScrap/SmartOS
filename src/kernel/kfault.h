@@ -24,7 +24,7 @@ typedef struct {
     uint32_t depc;       // 0x20  double-exception PC; 0 for a normal fault
 } k_fault_frame_t;
 
-extern "C" volatile k_fault_frame_t s3_fault_frame;
+extern "C" volatile k_fault_frame_t k_fault_frame;
 
 // True if core 1 has faulted and is now parked.
 bool kfault_pending(void);

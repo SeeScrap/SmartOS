@@ -36,7 +36,7 @@ IRAM_ATTR void k_tick_start(uint32_t hz)
     // ESP-IDF owns the clock setting; K_CPU_MHZ is SmartOS's copy of it, and the
     // static_assert below is what keeps the two from drifting apart.
     uint32_t cpu_hz = (uint32_t)CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ * 1000000u;
-    s3_tick_cycles  = cpu_hz / hz;
+    k_tick_cycles  = cpu_hz / hz;
 
     uint32_t ps = k_lock();
 
@@ -44,7 +44,7 @@ IRAM_ATTR void k_tick_start(uint32_t hz)
     uint32_t ccount;
     __asm__ __volatile__("rsr %0, ccount" : "=a"(ccount));
     s_tick_base = ccount;
-    uint32_t next = ccount + s3_tick_cycles;
+    uint32_t next = ccount + k_tick_cycles;
     __asm__ __volatile__("wsr %0, ccompare0" :: "a"(next));
 
     // Enable CPU interrupt 6 on this core only. INTENABLE is a per-core
@@ -58,7 +58,7 @@ IRAM_ATTR void k_tick_start(uint32_t hz)
     k_unlock(ps);
 
     klog("[kernel] tick armed: %u Hz, %u cycles, CPU int 6 (CCOMPARE0)\n",
-         (unsigned)hz, (unsigned)s3_tick_cycles);
+         (unsigned)hz, (unsigned)k_tick_cycles);
 }
 
 IRAM_ATTR bool k_tick_running(void) { return s_running; }
@@ -130,19 +130,19 @@ extern "C" IRAM_ATTR void k_int_dispatch(uint32_t *frame)
     // the ticks that elapsed are the ticks that get counted.
     uint32_t ccount;
     __asm__ __volatile__("rsr %0, ccount" : "=a"(ccount));
-    uint32_t n = (ccount - s_tick_base) / s3_tick_cycles;
+    uint32_t n = (ccount - s_tick_base) / k_tick_cycles;
     if (n == 0) n = 1;                     // cannot happen; never count zero
-    s_tick_base += n * s3_tick_cycles;
+    s_tick_base += n * k_tick_cycles;
 
     // Re-arming CCOMPARE0 is also how this interrupt is acknowledged. The
     // next boundary may be only a few cycles away if we were late by nearly a
     // whole period; count it now rather than risk writing a compare value that
     // CCOUNT has already passed.
-    uint32_t next = s_tick_base + s3_tick_cycles;
+    uint32_t next = s_tick_base + k_tick_cycles;
     if ((int32_t)(next - ccount) < K_TICK_MARGIN_CYCLES) {
         n++;
-        s_tick_base += s3_tick_cycles;
-        next        += s3_tick_cycles;
+        s_tick_base += k_tick_cycles;
+        next        += k_tick_cycles;
     }
     __asm__ __volatile__("wsr %0, ccompare0" :: "a"(next));
 
@@ -151,15 +151,15 @@ extern "C" IRAM_ATTR void k_int_dispatch(uint32_t *frame)
         if (n > s_tick_max_step) s_tick_max_step = n;
     }
 
-    s3_tick_count   = s3_tick_count + n;   // read-modify-write, not +=,
-    s3_need_resched = 1;                   // which C++20 deprecates on volatile
+    k_tick_count   = k_tick_count + n;   // read-modify-write, not +=,
+    k_need_resched = 1;                   // which C++20 deprecates on volatile
 
     // Record every tick, not just the ones that switch: the interesting one is
     // usually the tick right before things go wrong.
     if (s_trace_used < K_TRACE_N) {
         k_tcb_t *cur = k_current();
         k_trace_t *e = &s_trace[s_trace_used++];
-        e->tick  = s3_tick_count;
+        e->tick  = k_tick_count;
         e->pc    = frame[IFW_PC];
         e->sp    = frame[IFW_A1];
         e->task  = (uint32_t)(uintptr_t)cur;
@@ -183,7 +183,7 @@ extern "C" IRAM_ATTR void k_int_dispatch(uint32_t *frame)
     }
 }
 
-IRAM_ATTR uint32_t k_ticks(void) { return s3_tick_count; }
+IRAM_ATTR uint32_t k_ticks(void) { return k_tick_count; }
 IRAM_ATTR uint32_t k_tick_catchups(void) { return s_tick_catchups; }
 IRAM_ATTR uint32_t k_tick_max_step(void) { return s_tick_max_step; }
 
@@ -192,12 +192,12 @@ IRAM_ATTR uint32_t k_tick_hz(void) { return s_tick_hz; }
 IRAM_ATTR uint32_t k_millis(void)
 {
     if (s_tick_hz == 0) return 0;
-    return (uint32_t)((uint64_t)s3_tick_count * 1000u / s_tick_hz);
+    return (uint32_t)((uint64_t)k_tick_count * 1000u / s_tick_hz);
 }
 
-IRAM_ATTR bool k_resched_pending(void) { return s3_need_resched != 0; }
+IRAM_ATTR bool k_resched_pending(void) { return k_need_resched != 0; }
 
-IRAM_ATTR void k_resched_clear(void) { s3_need_resched = 0; }
+IRAM_ATTR void k_resched_clear(void) { k_need_resched = 0; }
 
 IRAM_ATTR void k_sleep_ms(uint32_t ms)
 {
@@ -214,7 +214,7 @@ IRAM_ATTR void k_sleep_ms(uint32_t ms)
     if (!t) return;
 
     uint32_t ps = k_lock();
-    t->wake_tick = s3_tick_count + ticks;
+    t->wake_tick = k_tick_count + ticks;
     t->state     = K_SLEEPING;
     k_unlock(ps);
 

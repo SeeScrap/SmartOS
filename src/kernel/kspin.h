@@ -88,23 +88,23 @@ static inline IRAM_ATTR void k_spin_unlock(k_spin_t *lock)
 // The scheduler lock cannot: proceeding without it would let two cores pick the
 // same task. So this one spins until it wins, and leaves a breadcrumb if it has
 // been spinning long enough that something is clearly wrong.
-extern "C" volatile uint32_t s3_spin_stuck;
+extern "C" volatile uint32_t k_spin_stuck;
 
 static inline IRAM_ATTR void k_spin_lock_hard(k_spin_t *lock)
 {
     uint32_t spins = 0;
     while (!k_spin_try(lock)) {
         if (++spins == K_SPIN_TIMEOUT) {     // the same patience as k_spin_lock
-            s3_spin_stuck = (uint32_t)(uintptr_t)lock;
+            k_spin_stuck = (uint32_t)(uintptr_t)lock;
         }
     }
 }
 
 // The console lock, shared by klog() on core 1 and logf() on core 0.
-extern "C" k_spin_t s3_console_lock;
+extern "C" k_spin_t k_console_lock;
 
 // The scheduler lock. Guards the task table, the per-CPU run state and the
 // heap. Held across a context switch on purpose: a task whose registers are
 // still half-saved must not be picked up by the other core, so the lock is
 // released by whichever context is switched IN, not by the one going out.
-extern "C" k_spin_t s3_sched_lock;
+extern "C" k_spin_t k_sched_lock;

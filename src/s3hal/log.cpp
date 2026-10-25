@@ -7,9 +7,9 @@
 
 // The one console, shared by both cores.
 extern "C" {
-    k_spin_t          s3_console_lock = 0;
-    k_spin_t          s3_sched_lock   = 0;
-    volatile uint32_t s3_spin_stuck   = 0;
+    k_spin_t          k_console_lock = 0;
+    k_spin_t          k_sched_lock   = 0;
+    volatile uint32_t k_spin_stuck   = 0;
 }
 
 void log_init(void)
@@ -21,12 +21,12 @@ void log_init(void)
 
 void logf(const char *fmt, ...)
 {
-    bool locked = k_spin_lock(&s3_console_lock);
+    bool locked = k_spin_lock(&k_console_lock);
     va_list ap;
     va_start(ap, fmt);
     vprintf(fmt, ap);
     va_end(ap);
-    if (locked) k_spin_unlock(&s3_console_lock);
+    if (locked) k_spin_unlock(&k_console_lock);
 }
 
 void logln(const char *s)

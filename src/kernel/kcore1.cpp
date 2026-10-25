@@ -22,7 +22,7 @@ extern "C" void ets_set_appcpu_boot_addr(uint32_t start);
 // exception dispatch indexes its handler table by core id against a table that
 // a unicore build only sizes for one core. A fault on core 1 would run whatever
 // handler sits in the next slot. See the header comment in kvectors.S.
-extern "C" void s3_vector_table(void);
+extern "C" void k_vector_table(void);
 
 static volatile bool s_core1_up = false;
 static kcore1_entry_t s_entry   = nullptr;
@@ -37,7 +37,7 @@ extern "C" void IRAM_ATTR kcore1_boot(void)
     // Before anything else: a vector table that is ours and that can service a
     // window overflow. Until this line runs, the first function call core 1
     // makes could vector into a handler meant for core 0.
-    esp_cpu_intr_set_ivt_addr((const void *)&s3_vector_table);
+    esp_cpu_intr_set_ivt_addr((const void *)&k_vector_table);
 
     // Stop the ROM stub from re-entering us if the core is ever reset again.
     ets_set_appcpu_boot_addr(0);

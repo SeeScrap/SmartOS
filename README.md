@@ -363,7 +363,7 @@ The guard detects, it does not protect - a task that overruns keeps running on a
 stack that is too small. What it buys is that the failure has a name and a task
 id instead of being a lockup somewhere else entirely.
 
-Also checked statically, from the ELF: `s3_vector_table` is 1 KB aligned
+Also checked statically, from the ELF: `k_vector_table` (named `s3_vector_table` until R3a) is 1 KB aligned
 (VECBASE requires it) with all fifteen vectors on their exact offsets, and every
 function and variable core 1 touches is in IRAM/DRAM, never flash.
 

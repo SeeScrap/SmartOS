@@ -241,13 +241,13 @@ static inline IRAM_ATTR uint32_t k_lock(void)
 {
     uint32_t ps;
     __asm__ __volatile__("rsil %0, 3" : "=a"(ps) :: "memory");
-    k_spin_lock_hard(&s3_sched_lock);
+    k_spin_lock_hard(&k_sched_lock);
     return ps;
 }
 
 static inline IRAM_ATTR void k_unlock(uint32_t ps)
 {
-    k_spin_unlock(&s3_sched_lock);
+    k_spin_unlock(&k_sched_lock);
     __asm__ __volatile__("wsr %0, ps; rsync" :: "a"(ps) : "memory");
 }
 

@@ -96,7 +96,7 @@ k_task_trampoline:
     .global k_chain_end
     .type   k_chain_end, @function
 k_chain_end:
-    movi    a2, s3_chain_end_hit
+    movi    a2, k_chain_end_hit
     movi    a3, 1
     s32i    a3, a2, 0
     memw

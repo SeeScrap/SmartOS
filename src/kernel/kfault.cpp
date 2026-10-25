@@ -35,7 +35,7 @@ const char *kfault_cause_name(uint32_t c)
 
 bool kfault_pending(void)
 {
-    return s3_fault_frame.pending != 0;
+    return k_fault_frame.pending != 0;
 }
 
 static unsigned      s_reported;
@@ -50,20 +50,20 @@ void kfault_report(void)
     // Take a copy first: core 1 is parked, but reading the volatile struct
     // field-by-field while formatting would interleave awkwardly.
     k_fault_frame_t f;
-    f.a0       = s3_fault_frame.a0;
-    f.sp       = s3_fault_frame.sp;
-    f.pc       = s3_fault_frame.pc;
-    f.exccause = s3_fault_frame.exccause;
-    f.excvaddr = s3_fault_frame.excvaddr;
-    f.ps       = s3_fault_frame.ps;
-    f.vector   = s3_fault_frame.vector;
-    f.depc     = s3_fault_frame.depc;
+    f.a0       = k_fault_frame.a0;
+    f.sp       = k_fault_frame.sp;
+    f.pc       = k_fault_frame.pc;
+    f.exccause = k_fault_frame.exccause;
+    f.excvaddr = k_fault_frame.excvaddr;
+    f.ps       = k_fault_frame.ps;
+    f.vector   = k_fault_frame.vector;
+    f.depc     = k_fault_frame.depc;
 
     // Consumed here, not by the caller. It used to be the caller's job, and
     // the stage 3.6 main loop did clear it while wake_core1() did not - so a
     // fault during boot was reported once there and again by the main loop.
     // A report that clears its own flag cannot be printed twice.
-    s3_fault_frame.pending = 0;
+    k_fault_frame.pending = 0;
     s_reported++;
 
     logln();

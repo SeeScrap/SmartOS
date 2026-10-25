@@ -23,9 +23,9 @@
 // ---------------------------------------------------------------------------
 
 // Written by the ISR, read by everyone. Defined in kvectors.S.
-extern "C" volatile uint32_t s3_tick_count;
-extern "C" volatile uint32_t s3_need_resched;
-extern "C" volatile uint32_t s3_tick_cycles;
+extern "C" volatile uint32_t k_tick_count;
+extern "C" volatile uint32_t k_need_resched;
+extern "C" volatile uint32_t k_tick_cycles;
 
 // Arms CCOMPARE0 and enables the timer interrupt on the calling core.
 // hz is the tick rate; 1000 gives a 1 ms tick.

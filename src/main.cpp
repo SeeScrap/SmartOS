@@ -62,8 +62,8 @@
 #include "kernel/kcore1.h"
 #include "kernel/kfault.h"
 
-extern "C" volatile uint32_t s3_chain_end_hit;
-extern "C" volatile uint32_t s3_spin_stuck;
+extern "C" volatile uint32_t k_chain_end_hit;
+extern "C" volatile uint32_t k_spin_stuck;
 #include "kernel/kheap.h"
 #include "kernel/kmbox.h"
 #include "kernel/ksync.h"
@@ -307,7 +307,7 @@ static void wake_core1(void)
         // Serve core 1's mailbox while its demo runs, and watch for a fault.
         for (int i = 0; i < 400; ++i) {
             kmbox_service();
-            if (s3_chain_end_hit) {
+            if (k_chain_end_hit) {
                 logln("[core0] !! core 1 unwound its register-window chain off the");
                 logln("        bottom of a task stack - k_stack_init got it wrong");
                 break;
@@ -317,7 +317,7 @@ static void wake_core1(void)
         }
 #ifdef S3_ENABLE_SMP
         logf("[core0] cpu0idle asked the scheduler %lu times; spin stuck on 0x%08lx\n",
-             (unsigned long)s_cpu0_loops, (unsigned long)s3_spin_stuck);
+             (unsigned long)s_cpu0_loops, (unsigned long)k_spin_stuck);
 #endif
         logf("[core0] preemption trace (%lu entries):\n",
              (unsigned long)k_trace_count());
@@ -339,11 +339,11 @@ static void wake_core1(void)
              (unsigned long)mb_b);
         // The tick lives entirely inside core 1, so the only proof it is
         // running is watching its counter move from over here.
-        uint32_t t1 = s3_tick_count;
+        uint32_t t1 = k_tick_count;
         hal_delay_ms(100);
         logf("[core0] core 1 tick counter: %lu -> %lu over 100 ms (%s)\n",
-             (unsigned long)t1, (unsigned long)s3_tick_count,
-             (s3_tick_count > t1) ? "CCOMPARE0 interrupt is firing"
+             (unsigned long)t1, (unsigned long)k_tick_count,
+             (k_tick_count > t1) ? "CCOMPARE0 interrupt is firing"
                                   : "NOT ticking - the timer interrupt never fired");
     } else {
         logln("[core0] !! core 1 never reported in.");
@@ -536,9 +536,9 @@ extern "C" void app_main(void)
             abort();
         }
         unlink("/fs/sys/panic_test");
-        const uint32_t t0 = s3_tick_count;
+        const uint32_t t0 = k_tick_count;
         hal_delay_ms(100);
-        const uint32_t ticks = s3_tick_count - t0;
+        const uint32_t ticks = k_tick_count - t0;
         char d[96];
         snprintf(d, sizeof(d), "reset: %s; core 1 faults %u; %lu ticks in 100 ms",
                  esp_reset_reason() == ESP_RST_PANIC ? "panic" : "other",

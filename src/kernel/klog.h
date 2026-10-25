@@ -38,8 +38,8 @@
 #define klog(...)                                     \
     do {                                              \
         k_preempt_hold();                             \
-        bool _kl = k_spin_lock(&s3_console_lock);     \
+        bool _kl = k_spin_lock(&k_console_lock);     \
         esp_rom_printf(__VA_ARGS__);                  \
-        if (_kl) k_spin_unlock(&s3_console_lock);     \
+        if (_kl) k_spin_unlock(&k_console_lock);     \
         k_preempt_release();                          \
     } while (0)
