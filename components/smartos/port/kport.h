@@ -7,7 +7,7 @@
 //
 // WHAT THIS FILE IS FOR
 //
-// src/kernel/ is the scheduler, the locks, the heap, the clock, the mailbox
+// components/smartos/kernel/ is the scheduler, the locks, the heap, the clock, the mailbox
 // and the fault reporter. None of that is specific to an ESP32-S3 - but it
 // does need a handful of things only the chip can give it: a way to place
 // code in RAM that works with the flash cache off, a console it can write to
@@ -15,11 +15,11 @@
 // interrupt, and somewhere to carve its heap from at boot.
 //
 // Before R4 the kernel reached for those directly, which is how
-// src/kernel/kmbox.cpp came to include board/hal_time.h and pull FreeRTOS in
+// components/smartos/kernel/kmbox.cpp came to include board/hal_time.h and pull FreeRTOS in
 // behind it: the kernel depended on the HAL, which depended on the operating
 // system the kernel was supposed to be replacing. This file is the seam that
 // reverses that. The kernel calls kport_*; the implementation for this chip
-// is src/port/kport.cpp.
+// is components/smartos/port/kport.cpp.
 //
 // WHY THERE IS NO STRUCT OF FUNCTION POINTERS
 //

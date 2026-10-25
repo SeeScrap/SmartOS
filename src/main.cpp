@@ -53,7 +53,7 @@
 #include "os/shell.h"
 #include "os/sysinfo.h"
 #include "os/syslog.h"
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 #include "os/krand.h"
 #include "board/lcd_panel.h"
 #include "board/lcd_probe.h"

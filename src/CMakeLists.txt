@@ -17,7 +17,6 @@ file(GLOB SMARTOS_APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/apps/*.cpp")
 idf_component_register(
     SRCS
         "main.cpp"
-        "port/kport.cpp"
         "boot_gfx.cpp"
         "system.cpp"
         "tests/harness.cpp"
@@ -45,7 +44,6 @@ idf_component_register(
         "gfx/wallpaper_data.cpp"
         "gfx/text.cpp"
         "os/evbus.cpp"
-        "os/kfmt.cpp"
         "os/krand.cpp"
         "os/app.cpp"
         "os/boot.cpp"
@@ -59,36 +57,24 @@ idf_component_register(
         "os/sysinfo.cpp"
         "ui/ui.cpp"
         "ui/keyboard.cpp"
-        "port/kcore1.cpp"
-        "kernel/kfault.cpp"
-        "arch/xtensa/kvectors.S"
-        "kernel/ksched.cpp"
-        "arch/xtensa/kswitch.S"
-        "kernel/ktime.cpp"
-        "kernel/kheap.cpp"
-        "kernel/kmbox.cpp"
-        "port/kpark.cpp"
-        "kernel/ksync.cpp"
         ${SMARTOS_APP_SRCS}
     INCLUDE_DIRS "." "../include"
     REQUIRES
+        smartos         # the kernel, the architecture and the port to this chip
         driver          # spi_master, gpio
         esp_adc         # the device service's ADC (stage 4.3c)
         esp_driver_gptimer  # the device service's sampling interrupt
         esp_hal_usb     # the shell reads the USB Serial/JTAG FIFO (stage 5.1)
-        esp_hw_support  # esp_cpu, core start/stall
+        esp_hw_support  # os/sysinfo.cpp reads the chip id
         esp_partition   # the park test scribbles on the storage partition
         esp_psram
-        esp_rom
         esp_wifi        # stage 6.3: the radio
         esp_netif
         esp_event
         nvs_flash
         esp_timer
         freertos
-        hal             # cpu_utility_ll
         soc
-        xtensa          # SPILL_ALL_WINDOWS
     # An app file is referenced by nothing - it registers itself from a static
     # constructor - and a linker taking objects from an ordinary archive only
     # pulls in the ones something needs. Defensive, as it turns out: stage
@@ -99,12 +85,6 @@ idf_component_register(
     WHOLE_ARCHIVE
 )
 
-# Stage 4.4: every SPI flash operation parks core 1. ESP-IDF calls these two
-# around each one; --wrap sends those calls to the wrappers in
-# port/kpark.cpp, which park core 1 and then call the originals. See the
-# note in port/kpark.h.
-target_link_libraries(${COMPONENT_LIB} INTERFACE
-    "-Wl,--wrap=spi_flash_disable_interrupts_caches_and_other_cpu"
-    "-Wl,--wrap=spi_flash_enable_interrupts_caches_and_other_cpu"
-    # Stage 4.4: a restart puts core 1 to sleep first - see port/kcore1.cpp.
-    "-Wl,--wrap=esp_restart_noos")
+# The --wrap flags that park core 1 around a flash write moved to
+# components/smartos/CMakeLists.txt in R7a: they belong beside port/kpark.cpp,
+# which implements the wrappers.

@@ -9,7 +9,7 @@
 
 #include "kernel/kmbox.h"
 #include "os/fs.h"
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 #include "board/log.h"
 
 #define LOG_PATH   "/fs/sys/log.txt"

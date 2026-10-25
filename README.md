@@ -54,8 +54,18 @@ are, and how to add an app or a test ([ฉบับภาษาไทย](CONTRI
 ## What is in here
 
 ```
-src/kernel/     the kernel: vector table, scheduler, context switch, allocator,
-                mailbox, timer, locks, the flash park        (3,800 lines)
+components/smartos/       the kernel, and what it stands on. Its own ESP-IDF
+                component, so its REQUIRES list is a machine-checked claim
+                about what it depends on - and examples/kernel_blink builds
+                against it alone.
+  kernel/       scheduler, context switch, allocator, mailbox, timer, locks,
+                the fault reporter. No ESP-IDF headers at all   (3,800 lines)
+  arch/xtensa/  the vector table, the context switch, compare-and-swap, the
+                interrupt mask. Replaced on a port to another architecture
+  port/         this chip: starting core 1, the inter-processor interrupt
+                that parks it, the console, the heap carve at boot
+include/        smartos.h for a program on the kernel, smartos_app.h for an
+                app on the OS, smartos_config.h for every setting
 src/os/         services the apps are built on: event bus, app model, files,
                 settings, system log, shell, screen, radio   (4,700 lines)
 src/gfx/        framebuffer, damage tracking, 5x8 font, pictures
@@ -65,6 +75,9 @@ src/ui/         what every app's screen is made of: lists, bars, confirmation,
 src/apps/       the apps, one file each - drop a file in, it registers itself
 src/tests/      every claim in this README, as code that runs on the board
                                                              (3,200 lines)
+examples/       kernel_blink/ is a separate project that builds against the
+                kernel component and nothing else - the proof that the layers
+                really do come apart. See examples/README.md
 tools/          the host side: shell driver, screenshots, picture converter,
                 font generator, Wi-Fi survey                   (860 lines)
 docs/screens/   screenshots taken through tools/screenshot.py
@@ -208,7 +221,7 @@ through it:
 Under the cooperative scheduler the same demo printed nothing from the ticker
 until tick 202, after the hog had finished. Three runs back to back, no faults.
 
-The interrupt entry ([kernel/kvectors.S](src/kernel/kvectors.S)) leaves
+The interrupt entry ([kernel/kvectors.S](components/smartos/kernel/kvectors.S)) leaves
 exception mode, saves all sixteen address registers plus SAR and the loop
 registers, and calls C on the interrupted task's own stack. That last choice is
 what makes it simple: `k_yield()` from inside the interrupt is an ordinary call,
@@ -287,7 +300,7 @@ it would take the USB console and the flash driver with it.
    printf - nowhere near the cause. Fixed by reserving 32 bytes instead of 16.
 2. **Both cores were writing the console with no arbitration.** `esp_rom_printf`
    on core 1 and `printf` on core 0 push at the same USB-serial-JTAG FIFO. Fixed
-   with a real cross-core spinlock built on `S32C1I` ([kernel/kspin.h](src/kernel/kspin.h)).
+   with a real cross-core spinlock built on `S32C1I` ([kernel/kspin.h](components/smartos/kernel/kspin.h)).
 3. **`k_exit` halted the core while tasks were still sleeping.** "Nothing is
    READY" is not "nothing is left" - a sleeper becomes runnable when the tick
    says so. Fixed by idling in `waiti` while any task is still asleep.
@@ -1098,7 +1111,7 @@ preemption, a runaway app takes USB and flash down with it), core 1 with
 everything in IRAM (150 KB framebuffer in internal RAM and every app function
 `IRAM_ATTR`), or core 1 with a park. The park won.
 
-**How it works** (`src/kernel/kpark.*`):
+**How it works** (`components/smartos/kernel/kpark.*`):
 
 1. Core 0 raises `FROM_CPU_INTR3`, routed to CPU interrupt 2 on core 1 only.
    IDF would use that source for core 1's `esp_ipc_isr`, and never does in a
@@ -1195,7 +1208,7 @@ An app is a name and four callbacks, `{init, on_event, draw, stop}` (in
 task **pinned to core 1**, a bus subscription, zeroed state of the size the
 app asks for, and a place to draw. Apps are ordinary code in flash, drawing
 into PSRAM, which stage 4.3a made safe on core 1. They format text with
-`k_snprintf` (`src/os/kfmt.h`), because libc's printf family reaches FreeRTOS's
+`k_snprintf` (`components/smartos/kernel/kfmt.h`), because libc's printf family reaches FreeRTOS's
 per-task state and core 1 has no FreeRTOS task.
 
 Three apps ship in `src/apps/`: **input** (stage 3.6's button screen, moved
@@ -1328,7 +1341,7 @@ nothing in the tree, and it's in the registry list the boot test prints.
 
 **Rules** (all in `src/os/app.h`):
 
-- **Format text with `k_snprintf`** (`os/kfmt.h`), never libc's printf family.
+- **Format text with `k_snprintf`** (`kernel/kfmt.h`), never libc's printf family.
   Apps run on core 1, and newlib reaches per-task state through FreeRTOS, which
   core 1 doesn't have.
 - **No IDF driver calls.** Hardware goes through the device service
@@ -3209,6 +3222,6 @@ core 1    : asleep, never started by IDF
 ```
 
 If it stops before `[core1] alive`, the wake sequence in
-[kernel/kcore1.cpp](src/kernel/kcore1.cpp) is where to look. If it stops later,
+[kernel/kcore1.cpp](components/smartos/kernel/kcore1.cpp) is where to look. If it stops later,
 core 1 has faulted and core 0 prints a decoded report - to check that path
 itself works, build with `-D SMARTOS_TEST_CORE1_FAULT`.

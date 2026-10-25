@@ -1,0 +1,19 @@
+# The three settings SmartOS cannot work without on this chip.
+#
+# CONFIG_FREERTOS_UNICORE is the one that matters most: it keeps FreeRTOS on
+# core 0 and leaves core 1 asleep, which is what makes core 1 ours to take.
+CONFIG_FREERTOS_UNICORE=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
+
+# This board. PSRAM is required: the kernel's large pool lives there.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+
+# The console SmartOS prints on.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+
+# -O2, the same as the OS build: the kernel's measurements assume it.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y

@@ -48,4 +48,4 @@
 
 // k_snprintf and friends. Not libc's: no locks, no heap, and it works on
 // core 1, which libc's printf does not.
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"

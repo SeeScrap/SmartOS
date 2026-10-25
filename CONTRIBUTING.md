@@ -58,7 +58,7 @@ regression visible later.
 
 **2. Core 1 may not call ESP-IDF.** The kernel owns core 1, and FreeRTOS does
 not exist there: no `printf`, no `malloc`, no driver calls, no `ESP_LOG`. Use
-`k_snprintf` (os/kfmt.h), `kmalloc`, and the mailbox (`kmbox_call`) for
+`k_snprintf` (kernel/kfmt.h), `kmalloc`, and the mailbox (`kmbox_call`) for
 anything that has to happen on core 0. An app that breaks this does not crash
 politely - it corrupts a core.
 
@@ -130,13 +130,18 @@ app that never yields.
 ## Where the layers are
 
 ```
-src/kernel/   scheduler, context switch, allocator, mailbox, locks, the park
+components/smartos/   the kernel and what it stands on, as its own component
+  kernel/     scheduler, context switch, allocator, mailbox, locks, the park
+  arch/xtensa/  the vector table, the context switch, the atomics
+  port/       this chip: core 1, the park interrupt, the console, the heap
+include/      smartos.h (kernel), smartos_app.h (apps), smartos_config.h
 src/os/       event bus, app model, files, settings, log, shell, screen, radio
 src/gfx/      framebuffer, damage tracking, font, pictures
 src/board/    the board itself: panel, buttons, console
 src/ui/       what every app's screen is made of
 src/apps/     the apps
 src/tests/    every claim in the README, as code
+examples/     kernel_blink/, a separate project on the kernel alone
 tools/        the host side: shell driver, screenshots, image and font tools
 ```
 

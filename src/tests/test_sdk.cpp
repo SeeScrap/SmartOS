@@ -11,7 +11,7 @@
 #include "os/app.h"
 #include "os/dev.h"
 #include "os/evbus.h"
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 #include "os/krand.h"
 #include "board/hal_time.h"
 #include "board/input.h"

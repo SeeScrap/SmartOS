@@ -58,7 +58,7 @@ pio run -t upload -t monitor
 
 **2. core 1 ห้ามเรียก ESP-IDF** เคอร์เนลเป็นเจ้าของ core 1 และ FreeRTOS ไม่มีอยู่
 ตรงนั้น — ไม่มี `printf` ไม่มี `malloc` ไม่มีการเรียกไดรเวอร์ ไม่มี `ESP_LOG`
-ให้ใช้ `k_snprintf` (os/kfmt.h), `kmalloc` และใช้ mailbox (`kmbox_call`) สำหรับ
+ให้ใช้ `k_snprintf` (kernel/kfmt.h), `kmalloc` และใช้ mailbox (`kmbox_call`) สำหรับ
 สิ่งที่ต้องทำบน core 0 แอปที่แหกกฎข้อนี้ไม่ได้แครชอย่างสุภาพ แต่ทำให้ทั้งคอร์พัง
 
 **3. การเรียกที่คำขออยู่บน stack ของผู้เรียก ต้องไม่มี timeout** ถ้ามันเลิกรอ
@@ -123,7 +123,11 @@ stage 5.4c แก้ไป
 ## โครงสร้างแต่ละชั้น
 
 ```
-src/kernel/   ตัวจัดคิว การสลับงาน ตัวจัดการหน่วยความจำ mailbox ตัวล็อก การ park คอร์
+components/smartos/   เคอร์เนลและสิ่งที่มันยืนอยู่บน แยกเป็น component ของตัวเอง
+  kernel/     ตัวจัดคิว การสลับงาน ตัวจัดการหน่วยความจำ mailbox ตัวล็อก การ park คอร์
+  arch/xtensa/  ตารางเวกเตอร์ การสลับคอนเท็กซ์ คำสั่งอะตอมมิก
+  port/       ชิปตัวนี้: การปลุกคอร์ 1 อินเทอร์รัปต์ที่พักมัน คอนโซล การแบ่ง heap
+include/      smartos.h (เคอร์เนล), smartos_app.h (แอป), smartos_config.h
 src/os/       event bus, app model, ไฟล์, settings, log, เชลล์, จอ, วิทยุ
 src/gfx/      framebuffer, damage tracking, ฟอนต์, รูปภาพ
 src/board/    ตัวบอร์ดเอง: จอ SPI, ปุ่ม, คอนโซล

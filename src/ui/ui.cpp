@@ -2,7 +2,7 @@
 
 #include "gfx/text.h"
 #include "os/app.h"
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 
 // The margin every list row has used since stage 4.3d: four pixels either
 // side of the app area.

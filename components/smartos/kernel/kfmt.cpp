@@ -1,4 +1,4 @@
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 
 #include <stdint.h>
 
