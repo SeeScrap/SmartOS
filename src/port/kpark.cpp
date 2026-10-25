@@ -9,6 +9,7 @@
 
 #include "port/kcore1.h"
 #include "kernel/kfault.h"
+#include "kernel/internal/ktask_internal.h"
 #include "kernel/ktask.h"
 
 // Everything core 1 reads while parked is here, in DRAM.

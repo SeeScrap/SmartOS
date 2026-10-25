@@ -4,6 +4,7 @@
 
 #include "port/kport.h"
 #include "kernel/klog.h"
+#include "kernel/internal/ktask_internal.h"
 #include "kernel/ktask.h"
 
 #define KBLK_MAGIC 0x4B424C4Bu   // "KBLK"

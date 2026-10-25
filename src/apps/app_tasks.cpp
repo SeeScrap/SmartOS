@@ -123,7 +123,7 @@ static void sample(app_ctx_t *c)
     for (int id = 0; id < APP_MAX; ++id) {
         s->app_bytes += (uint32_t)kheap_owner_bytes(KHEAP_INTERNAL, (uint16_t)(id + 1));
     }
-    const uint32_t sw = k_cpu()->switches;             // this app is on core 1
+    const uint32_t sw = k_switch_count();              // this app is on core 1
     if (s->have_prev) {
         s->switches_per_s  = sw - s->switches_prev;
         s->flash_ops_per_s = s->sys.flash_ops - s->flash_ops_prev;

@@ -3,6 +3,7 @@
 #include "port/kport.h"
 #include "kernel/klog.h"
 #include "port/kpark.h"
+#include "kernel/internal/ktask_internal.h"
 #include "kernel/ktask.h"
 
 // Everything here runs on core 1, so it all lives in IRAM for the same reason

@@ -20,6 +20,7 @@
 #include "kernel/kfault.h"
 #include "kernel/kheap.h"
 #include "kernel/kmbox.h"
+#include "kernel/internal/ktask_internal.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
 #include "apps/apps.h"

@@ -4,6 +4,7 @@
 
 #include "kernel/klog.h"
 #include "kernel/kspin.h"
+#include "kernel/internal/ktask_internal.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
 #include "port/kport.h"

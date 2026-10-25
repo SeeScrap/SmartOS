@@ -4,6 +4,7 @@
 
 #include "port/kport.h"
 #include "kernel/klog.h"
+#include "kernel/internal/ktask_internal.h"
 
 // Everything here runs on core 1 as often as core 0, and all of it is reachable
 // from inside a critical section, so it lives in IRAM like the rest of the
