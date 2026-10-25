@@ -6,7 +6,7 @@
 #include "esp_timer.h"
 
 #include "apps/apps.h"
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "gfx/fb.h"
 #include "os/app.h"
 #include "os/dev.h"
@@ -43,7 +43,7 @@ void sdk_logic_test(void)
     char d[160], b[96];
     int  r;
 
-    if (!fb_init(&s_fb, 320, 240)) {
+    if (!fb_init(&s_fb, LCD_WIDTH, LCD_HEIGHT)) {
         sdk_case("a framebuffer to check in", false, "no room for a 320x240 buffer");
         return;
     }

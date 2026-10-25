@@ -39,7 +39,7 @@ static void on_event(app_ctx_t *c, const ev_t *ev)
         s->x += s->dx;
         s->y += s->dy;
         if (s->x < 0)                   { s->x = 0;                    s->dx = -s->dx; }
-        if (s->x > 320 - BOX)           { s->x = 320 - BOX;            s->dx = -s->dx; }
+        if (s->x > LCD_WIDTH - BOX)     { s->x = LCD_WIDTH - BOX;            s->dx = -s->dx; }
         if (s->y < 20)                  { s->y = 20;                   s->dy = -s->dy; }
         if (s->y > APP_AREA_H - BOX)    { s->y = APP_AREA_H - BOX;     s->dy = -s->dy; }
     }

@@ -29,10 +29,12 @@ static DRAM_ATTR uint32_t s_tick_max_step = 0;   // most ticks counted at once
 
 IRAM_ATTR void k_tick_start(uint32_t hz)
 {
-    if (hz == 0) hz = 1000;
+    if (hz == 0) hz = K_TICK_HZ;
     s_tick_hz = hz;
 
     // CCOUNT advances at the CPU clock, so a tick is simply cpu_hz / tick_hz.
+    // ESP-IDF owns the clock setting; K_CPU_MHZ is SmartOS's copy of it, and the
+    // static_assert below is what keeps the two from drifting apart.
     uint32_t cpu_hz = (uint32_t)CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ * 1000000u;
     s3_tick_cycles  = cpu_hz / hz;
 
@@ -222,3 +224,10 @@ IRAM_ATTR void k_sleep_ms(uint32_t ms)
         k_yield();
     }
 }
+
+// Three places outside the kernel turn CCOUNT cycles into time by dividing by
+// K_CPU_MHZ. If someone changes the clock in sdkconfig and not in
+// smartos_config.h, those three would quietly report the wrong figures.
+static_assert(K_CPU_MHZ == CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ,
+              "K_CPU_MHZ in smartos_config.h disagrees with "
+              "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ in sdkconfig - make them match");

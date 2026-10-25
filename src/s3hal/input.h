@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 3.6 - buttons as an event stream.
 //
@@ -46,7 +48,7 @@ enum {
     BTN_OK    = 1u << 4,
     BTN_BACK  = 1u << 5,
 };
-#define BTN_COUNT 6
+// BTN_COUNT is in smartos_config.h, section 15.
 
 typedef enum {
     INPUT_PRESS   = 1,
@@ -54,10 +56,8 @@ typedef enum {
     INPUT_REPEAT  = 3,      // held: first after INPUT_REPEAT_DELAY_MS, then every INPUT_REPEAT_EVERY_MS
 } input_kind_t;
 
-#define INPUT_SAMPLE_MS        2
-#define INPUT_DEBOUNCE_MS     12    // a level must hold this long to count
-#define INPUT_REPEAT_DELAY_MS 400
-#define INPUT_REPEAT_EVERY_MS 120
+// INPUT_SAMPLE_MS, INPUT_DEBOUNCE_MS and the two repeat times are in
+// smartos_config.h, section 15.
 
 // Core 0, once, before core 1 is started and after evbus_init(): the pull-ups.
 void        input_init(void);

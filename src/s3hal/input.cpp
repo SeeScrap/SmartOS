@@ -4,7 +4,7 @@
 #include "soc/gpio_reg.h"
 #include "soc/soc.h"
 
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "os/evbus.h"
 #include "kernel/ktime.h"
 #include "s3hal/gpio.h"

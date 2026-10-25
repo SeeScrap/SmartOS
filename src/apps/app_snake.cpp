@@ -15,7 +15,7 @@
 #include "s3hal/input.h"
 
 #define CELL      8
-#define COLS      40               // 320 / 8
+#define COLS      (LCD_WIDTH / 8)
 #define TOP_ROW   3                // rows 0-2: the score line
 #define ROWS      27               // 216 / 8
 #define MAX_LEN   (COLS * (ROWS - TOP_ROW))

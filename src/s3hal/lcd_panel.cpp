@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "s3hal/lcd_bus.h"
 #include "s3hal/log.h"
 
@@ -210,7 +210,8 @@ bool lcd_panel_init(lcd_ctrl_t ctrl)
 
     lcd_set_rotation(s_rot);   // uses s_bgr, so it runs after the table above
 
-    size_t need = (size_t)320 * 3;           // widest axis, worst-case 3 bytes/px
+    // The longest side, whichever way the panel is turned; 3 bytes/px worst case.
+    size_t need = (size_t)(LCD_WIDTH > LCD_HEIGHT ? LCD_WIDTH : LCD_HEIGHT) * 3;
     if (s_line_sz < need) {
         if (s_line) free(s_line);
         s_line = (uint8_t *)lcd_dma_alloc(need);
@@ -243,7 +244,9 @@ void lcd_set_rotation(uint8_t rot)
     uint8_t m = madctl_for(s_rot);
     lcd_cmd_p(0x36, &m, 1);
 
-    // 240x320 native, so landscape is 320x240.
+    // 240x320 native, so landscape is 320x240. These are the PANEL's own
+    // numbers, not LCD_WIDTH/LCD_HEIGHT: those are the rotated size the rest
+    // of the system sees, and in the portrait branch below they are swapped.
     if (s_rot & 1) { s_w = 320; s_h = 240; }
     else           { s_w = 240; s_h = 320; }
 }
@@ -278,7 +281,7 @@ void lcd_backlight_pct(uint8_t pct)
         ledc_channel_config(&ch);
         s_bl_pwm = true;
     }
-    s_bl_duty = (uint32_t)pct * 1023u / 100u;
+    s_bl_duty = (uint32_t)pct * LCD_BACKLIGHT_MAX_DUTY / 100u;
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, s_bl_duty);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 }

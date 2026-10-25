@@ -147,7 +147,7 @@
 // APP_MAX, APP_CHORD_MS (the DOWN-then-BACK chord), APP_Q_LEN, APP_AREA_Y,
 // APP_REGISTRY_MAX, APP_MEM_RESERVE, APP_KERNEL_MAX and APP_STOP_GRACE_MS are
 // set in smartos_config.h, section 6.
-#define APP_AREA_H     (240 - APP_AREA_Y)
+#define APP_AREA_H     (LCD_HEIGHT - APP_AREA_Y)
 
 // EV_SYS codes, in ev.a.
 enum {

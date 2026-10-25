@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "freertos/FreeRTOS.h"   // portMAX_DELAY

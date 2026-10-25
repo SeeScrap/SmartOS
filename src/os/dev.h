@@ -23,7 +23,7 @@
 //
 // Everything the system itself uses - the LCD, touch, SD, buttons, flash and
 // PSRAM, native USB, UART0, the strapping pins - is refused (PINS_RESERVED in
-// board/pins.h). What is left for apps: 1, 2, 17, 18, 38-42, 48. The ADC is on
+// board/devkitc_n16r8.h). What is left for apps: 1, 2, 17, 18, 38-42, 48. The ADC is on
 // 1 and 2 (ADC1) and 17 and 18 (ADC2).
 //
 // WHAT IS NOT HERE YET

@@ -2,7 +2,7 @@
 
 #include "s3hal/gpio.h"
 #include "s3hal/hal_time.h"
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "s3hal/log.h"
 
 // How many clocks the panel wants between the command and its answer.

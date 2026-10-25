@@ -45,6 +45,14 @@
 //  10. Saved settings / ค่าที่จำไว้ในแฟลช
 //  11. The shell / เชลล์
 //  12. Pins, ADC and sampling / ขา ADC และการสุ่มสัญญาณ
+//  13. The chip / ตัวชิป
+//  14. The screen / หน้าจอ
+//  15. The buttons / ปุ่ม
+//
+// The board's pin numbers are NOT here. They are one file per board, in
+// src/board/, because a second board adds a file rather than editing this one.
+// ขาของบอร์ดไม่ได้อยู่ที่นี่ แต่แยกเป็นไฟล์ละบอร์ดใน src/board/ เพื่อให้บอร์ด
+// ตัวที่สองแค่เพิ่มไฟล์ ไม่ต้องมาแก้ไฟล์นี้
 // ---------------------------------------------------------------------------
 
 
@@ -353,4 +361,74 @@
 #endif
 #ifndef DEV_STREAM_MIN_MS
 #define DEV_STREAM_MIN_MS  2    // 500 samples a second per stream at most
+#endif
+
+
+// ===========================================================================
+// 13. THE CHIP / ตัวชิป
+// ===========================================================================
+
+// The CPU clock, in MHz. CCOUNT advances at this rate, so anything that turns
+// cycles into time divides by it.
+//
+// ESP-IDF owns the real setting (CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ in
+// sdkconfig.defaults). This is SmartOS's copy of it, and a static_assert in
+// kernel/ktime.cpp fails the build if the two ever disagree - which is the
+// whole point: three places used to divide by a bare 240.
+#ifndef K_CPU_MHZ
+#define K_CPU_MHZ  240
+#endif
+
+// Ticks a second. 1000 gives the 1 ms tick the scheduler has always used.
+#ifndef K_TICK_HZ
+#define K_TICK_HZ  1000
+#endif
+
+
+// ===========================================================================
+// 14. THE SCREEN / หน้าจอ
+// ===========================================================================
+// The panel is 240x320 native and used in landscape, so these are the
+// rotated, logical size - what every app and the framebuffer see.
+
+#ifndef LCD_WIDTH
+#define LCD_WIDTH     320
+#endif
+#ifndef LCD_HEIGHT
+#define LCD_HEIGHT    240
+#endif
+
+// 80 MHz. The four signal pins are the FSPI IOMUX pads, which is what makes
+// this rate reachable at all; on any other pins the GPIO matrix caps it lower.
+#ifndef LCD_SPI_HZ
+#define LCD_SPI_HZ  (80 * 1000 * 1000)
+#endif
+
+// The backlight is a 10-bit LEDC channel, so full brightness is this duty.
+// Four places used to write 1023 by hand.
+#ifndef LCD_BACKLIGHT_MAX_DUTY
+#define LCD_BACKLIGHT_MAX_DUTY  1023u
+#endif
+
+
+// ===========================================================================
+// 15. THE BUTTONS / ปุ่ม
+// ===========================================================================
+// Which pins they are on is in the board file; how they are read is here.
+
+#ifndef BTN_COUNT
+#define BTN_COUNT 6
+#endif
+
+#ifndef INPUT_SAMPLE_MS
+#define INPUT_SAMPLE_MS        2
+#endif
+#ifndef INPUT_DEBOUNCE_MS
+#define INPUT_DEBOUNCE_MS     12    // a level must hold this long to count
+#endif
+#ifndef INPUT_REPEAT_DELAY_MS
+#define INPUT_REPEAT_DELAY_MS 400
+#endif
+#ifndef INPUT_REPEAT_EVERY_MS
+#define INPUT_REPEAT_EVERY_MS 120
 #endif

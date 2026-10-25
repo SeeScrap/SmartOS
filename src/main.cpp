@@ -32,7 +32,7 @@
 #include "freertos/task.h"
 #include "sdkconfig.h"
 
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "s3hal/hal_time.h"
 #include "s3hal/input.h"
 #include "s3hal/lcd_bus.h"
@@ -655,7 +655,7 @@ static void IRAM_ATTR bus_timer_check_task(void *arg)
         ev_t ev;
         evbus_recv(sub, &ev);
         k_cpu_time(1, &ct);
-        const uint32_t park_us = (uint32_t)((ct.park - park_prev) / 240);
+        const uint32_t park_us = (uint32_t)((ct.park - park_prev) / K_CPU_MHZ);
         park_prev = ct.park;
         periods += ev.b;
         if (ev.b > 1) {
@@ -778,7 +778,7 @@ static void IRAM_ATTR core1_main(void)
     klog("[core1] bringing up the kernel\n");
     k_init();                       // also brings up the kernel's own heap
     kpark_init_core1();             // before the tick: interrupts open with it
-    k_tick_start(1000);             // CCOMPARE0, 1 ms, this core only
+    k_tick_start(K_TICK_HZ);        // CCOMPARE0, 1 ms, this core only
 
 #ifdef S3_PREEMPT_SOAK
     // Bisection build: the smallest thing that can prove preemption works.
@@ -1733,9 +1733,11 @@ extern "C" void app_main(void)
         // The brightness setting, loaded from flash, is what the PWM is doing.
         const int32_t bl = settings_get("backlight");
         const uint32_t duty = lcd_backlight_duty();
-        snprintf(d, sizeof(d), "backlight %ld %%, PWM duty %lu of 1023 (want %lu)", (long)bl,
-                 (unsigned long)duty, (unsigned long)(bl * 1023 / 100));
-        sdk_case("settings applied", duty == (uint32_t)(bl * 1023 / 100), d);
+        snprintf(d, sizeof(d), "backlight %ld %%, PWM duty %lu of %lu (want %lu)", (long)bl,
+                 (unsigned long)duty, (unsigned long)LCD_BACKLIGHT_MAX_DUTY,
+                 (unsigned long)(bl * LCD_BACKLIGHT_MAX_DUTY / 100));
+        sdk_case("settings applied",
+                 duty == (uint32_t)(bl * LCD_BACKLIGHT_MAX_DUTY / 100), d);
 
         logln("  files kept by apps:");
         fs_print_tree();

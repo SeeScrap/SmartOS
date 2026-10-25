@@ -1,4 +1,6 @@
 #pragma once
+
+#include "smartos_config.h"
 // ---------------------------------------------------------------------------
 // Project S3 - board pin map
 // ESP32-S3-DevKitC-1 N16R8 + 2.4" 240x320 SPI TFT (ST7789 or ILI9341) + buttons
@@ -41,8 +43,7 @@
 // Both controllers that come on these modules take 16-bit RGB565 straight over
 // SPI, which the 3.5" ILI9488 could not - it forced 18-bit, three bytes per
 // pixel. A frame is now 153,600 bytes on the wire instead of 460,800.
-#define LCD_WIDTH     320
-#define LCD_HEIGHT    240
+// LCD_WIDTH, LCD_HEIGHT and LCD_SPI_HZ are in smartos_config.h, section 14.
 
 // SPI clock used for pixel pushing.
 // 80 MHz is the ceiling of SPI2 and is only reachable because SCK/MOSI/MISO/CS
@@ -50,7 +51,6 @@
 // us at 40 MHz.
 // These red modules have long unbuffered traces, so if the panel shows noise or
 // nothing once it is wired up, step back down to 40 MHz.
-#define LCD_SPI_HZ  (80 * 1000 * 1000)
 
 // ---- pins no app may touch (stage 4.3c) ------------------------------------
 // Built from the defines above rather than written out, so moving a wire

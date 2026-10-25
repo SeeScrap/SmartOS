@@ -77,7 +77,7 @@ void sys45_live_test(void)
     snprintf(d, sizeof(d), "%ld %%, duty %lu; saves %lu at 0.3 s, %lu at 1.6 s; file: %s",
              (long)dimmed, (unsigned long)duty, (unsigned long)saves_soon,
              (unsigned long)saves_later, on_flash ? "backlight=70" : "NOT updated");
-    sdk_case("brightness via the app", dimmed == 70 && duty == 70u * 1023u / 100u &&
+    sdk_case("brightness via the app", dimmed == 70 && duty == 70u * LCD_BACKLIGHT_MAX_DUTY / 100u &&
              saves_soon == 0 && saves_later == 1 && on_flash, d);
     press(3, INPUT_PRESS);                                // RIGHT x3: back to 100
     press(3, INPUT_PRESS);
@@ -460,7 +460,7 @@ static void measure(window_t *w, uint32_t ms, bool flash)
     w->busy = b.busy - a.busy;
     w->idle = b.idle - a.idle;
     w->park = b.park - a.park;
-    w->wall_cycles = (uint64_t)(t1 - t0) * 240;
+    w->wall_cycles = (uint64_t)(t1 - t0) * K_CPU_MHZ;
     if (flash) unlink("/fs/sys/.acct_test");
 }
 
@@ -950,7 +950,7 @@ void sys54_polish_test(void)
                  off_ms, (unsigned long)duty_off, (unsigned long)duty_on, (long)v0, (long)v_wake,
                  (long)v_after);
         sdk_case("screen off, and the press that wakes it", screen_offs() == offs0 + 1 &&
-                 off_ms >= 1900 && off_ms <= 2600 && duty_off == 0 && duty_on == 1023 &&
+                 off_ms >= 1900 && off_ms <= 2600 && duty_off == 0 && duty_on == LCD_BACKLIGHT_MAX_DUTY &&
                  v_wake == v0 && v_after == v0 + 1, d);
 
         settings_set("screenoff", 0);               // off again for the rest

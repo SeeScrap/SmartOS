@@ -122,7 +122,7 @@ static void cmd_ps(int, char **)
     k_cpu_time(1, &now);
     const uint64_t all = (now.busy - s_ps_core.busy) + (now.idle - s_ps_core.idle) +
                          (now.park - s_ps_core.park);
-    const uint64_t mhz = 240;                      // CCOUNT runs at the CPU clock
+    const uint64_t mhz = K_CPU_MHZ;                // CCOUNT runs at the CPU clock
 
     logf("  id name        state  core pri   cpu1%%  cpu ms  stack used/total\n");
     logf("  -- ----------- ------ ---- ---  ------ ------- ----------------\n");

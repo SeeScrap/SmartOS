@@ -27,7 +27,7 @@
 
 #define PLOT_Y     40            // top of the trace area, within the app area
 #define PLOT_H     160
-#define PLOT_W     320
+#define PLOT_W     LCD_WIDTH
 #define MV_TOP     3300
 #define PERIOD_MS  10
 #define PENDING    64            // samples that can wait between two frames
