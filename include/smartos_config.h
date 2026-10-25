@@ -48,6 +48,9 @@
 //  13. The chip / ตัวชิป
 //  14. The screen / หน้าจอ
 //  15. The buttons / ปุ่ม
+//  16. Drawing / การวาด
+//  17. The boot screen / หน้าจอตอนบูต
+//  18. The on-screen controls / ส่วนควบคุมบนจอ
 //
 // The board's pin numbers are NOT here. They are one file per board, in
 // src/board/, because a second board adds a file rather than editing this one.
@@ -404,17 +407,24 @@
 #define LCD_SPI_HZ  (80 * 1000 * 1000)
 #endif
 
-// How long the bring-up demo scene stays on screen after the boot screen,
-// before the launcher takes over. It exists to be judged by eye, so it needs
-// long enough to be looked at; 0 skips it.
-#ifndef GFX_DEMO_HOLD_MS
-#define GFX_DEMO_HOLD_MS  1500
-#endif
-
 // The backlight is a 10-bit LEDC channel, so full brightness is this duty.
 // Four places used to write 1023 by hand.
 #ifndef LCD_BACKLIGHT_MAX_DUTY
 #define LCD_BACKLIGHT_MAX_DUTY  1023u
+#endif
+
+// Largest single SPI transaction, and therefore the size of each staging
+// buffer in lcd_panel.cpp.
+//
+// Was 4096 through stage 3.3, which did not matter then because the blit sent
+// one transaction per ROW - 640 bytes on this panel, nowhere near the cap. What
+// made it matter is stage 3.4 sending a whole rectangle at once: the cap is now
+// what decides how many transactions a frame costs. 8 KB puts a full frame at
+// 20 of them instead of 240, which is 0.8 ms of overhead against 15.4 ms of
+// wire time - far enough down that doubling the buffers again would buy almost
+// nothing and cost real internal RAM.
+#ifndef LCD_MAX_TRANSFER
+#define LCD_MAX_TRANSFER  8192
 #endif
 
 
@@ -438,4 +448,84 @@
 #endif
 #ifndef INPUT_REPEAT_EVERY_MS
 #define INPUT_REPEAT_EVERY_MS 120
+#endif
+
+
+// ===========================================================================
+// 16. DRAWING / การวาด                                 (gfx/fb.h, gfx/text.h)
+// ===========================================================================
+
+// How many separate damaged regions are tracked before they start being merged
+// together. Small on purpose: the list is walked on every draw call, and beyond
+// a handful of rectangles the walk costs more than the transfers saved.
+#ifndef FB_DAMAGE_MAX
+#define FB_DAMAGE_MAX 8
+#endif
+
+// One character cell of the 5x8 font, with its gap. Layout arithmetic all
+// over the UI is written in terms of these two.
+#ifndef TEXT_CELL_W
+#define TEXT_CELL_W 6
+#endif
+#ifndef TEXT_CELL_H
+#define TEXT_CELL_H 10
+#endif
+
+// Largest scale drawn; anything above is drawn at this. 8 is a 48x80 cell,
+// a third of the screen's height per line, which is already past any use.
+// The limit exists because a scaled row is expanded into a buffer on the stack.
+#ifndef TEXT_MAX_SCALE
+#define TEXT_MAX_SCALE 8
+#endif
+
+
+// ===========================================================================
+// 17. THE BOOT SCREEN / หน้าจอตอนบูต                        (os/boot.h)
+// ===========================================================================
+
+// The least time the boot screen is up, because a boot screen nobody sees is
+// not a boot screen. It is the only place in this firmware where time is
+// spent on purpose.
+#ifndef BOOT_MIN_MS
+#define BOOT_MIN_MS 1500
+#endif
+
+// How long the shell's "bootscreen" preview keeps the status bar off the
+// panel, so a screenshot taken during it is of the boot screen and nothing
+// else.
+#ifndef BOOT_PREVIEW_MS
+#define BOOT_PREVIEW_MS 20000
+#endif
+
+// How long the bring-up demo scene stays on screen after the boot screen,
+// before the launcher takes over. It exists to be judged by eye, so it needs
+// long enough to be looked at; 0 skips it.
+#ifndef GFX_DEMO_HOLD_MS
+#define GFX_DEMO_HOLD_MS  1500
+#endif
+
+
+// ===========================================================================
+// 18. THE ON-SCREEN CONTROLS / ส่วนควบคุมบนจอ      (ui/ui.h, ui/keyboard.h)
+// ===========================================================================
+
+// How much of the highlight colour a selected row gets when it sits over a
+// picture rather than a flat background.
+#ifndef UI_SELECT_PCT
+#define UI_SELECT_PCT 85
+#endif
+
+#ifndef UI_KB_COLS
+#define UI_KB_COLS   10
+#endif
+#ifndef UI_KB_ROWS
+#define UI_KB_ROWS   5          // four rows of characters, then the wide keys
+#endif
+#ifndef UI_KB_MAX
+#define UI_KB_MAX    64         // characters it will hold, plus the terminator
+#endif
+
+// What app_fstest found, for the test script on core 0 to print.
+#ifndef FSCHECK_MAX
+#define FSCHECK_MAX 12
 #endif

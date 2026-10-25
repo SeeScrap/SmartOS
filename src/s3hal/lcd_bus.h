@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include "esp_err.h"
 
+#include "smartos_config.h"
+
 // Write-only SPI transport for the panel.
 //
 // The display driver never needs to read, so this side of the HAL only pushes:
@@ -25,17 +27,8 @@ typedef enum {
     LCD_XFER_QUEUED,
 } lcd_xfer_mode_t;
 
-// Largest single SPI transaction, and therefore the size of each staging
-// buffer in lcd_panel.cpp.
-//
-// Was 4096 through stage 3.3, which did not matter then because the blit sent
-// one transaction per ROW - 640 bytes on this panel, nowhere near the cap. What
-// made it matter is stage 3.4 sending a whole rectangle at once: the cap is now
-// what decides how many transactions a frame costs. 8 KB puts a full frame at
-// 20 of them instead of 240, which is 0.8 ms of overhead against 15.4 ms of
-// wire time - far enough down that doubling the buffers again would buy almost
-// nothing and cost real internal RAM.
-#define LCD_MAX_TRANSFER  8192
+// LCD_MAX_TRANSFER is in smartos_config.h, section 14, with the measurement
+// that chose it.
 
 esp_err_t lcd_bus_init(uint32_t clock_hz);
 void      lcd_bus_free(void);

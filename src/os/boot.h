@@ -4,6 +4,8 @@
 
 #include "gfx/fb.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 6.1 - the boot screen.
 //
@@ -31,7 +33,8 @@
 // does, this is the first thing that should be able to use one.
 // ---------------------------------------------------------------------------
 
-#define BOOT_MIN_MS 1500        // the least time the screen is up
+// BOOT_MIN_MS, BOOT_PREVIEW_MS and GFX_DEMO_HOLD_MS are in
+// smartos_config.h, section 17.
 
 // Core 0, once the panel is alive: the first frame, then the backlight fades
 // in. Everything drawn before this was invisible, which is the point.
@@ -55,7 +58,6 @@ void boot_screen_preview(fb_t *fb);
 
 // True while a preview is up: the status bar leaves the panel alone until it
 // is over, so a screenshot taken now is of the boot screen and nothing else.
-#define BOOT_PREVIEW_MS 20000
 bool boot_preview_active(void);
 
 // For the test script.

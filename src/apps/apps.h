@@ -4,6 +4,8 @@
 
 #include "os/app.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // The apps that ship with the system. Each is an app_t and nothing else - no
 // task, no queue, no drawing surface of its own; the runtime in os/app.cpp
@@ -74,8 +76,7 @@ extern const app_t app_notes;
 const char *app_notes_text(const app_ctx_t *c);
 const char *app_notes_message(const app_ctx_t *c);
 
-// What app_fstest found, for the test script on core 0 to print.
-#define FSCHECK_MAX 12
+// FSCHECK_MAX is in smartos_config.h, section 18.
 typedef struct {
     const char *what;
     bool        ok;

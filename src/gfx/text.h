@@ -1,6 +1,8 @@
 #pragma once
 #include "gfx/fb.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 3.5 - text.
 //
@@ -26,13 +28,8 @@
 // changing it means redrawing whatever was underneath first.
 // ---------------------------------------------------------------------------
 
-#define TEXT_CELL_W 6
-#define TEXT_CELL_H 10
-
-// Largest scale drawn; anything above is drawn at this. 8 is a 48x80 cell,
-// a third of the screen's height per line, which is already past any use.
-// The limit exists because a scaled row is expanded into a buffer on the stack.
-#define TEXT_MAX_SCALE 8
+// TEXT_CELL_W, TEXT_CELL_H and TEXT_MAX_SCALE are in smartos_config.h,
+// section 16.
 
 // Both return the x just past the last character drawn, so calls can be
 // chained along a line. '\n' returns to the starting x one line down.
