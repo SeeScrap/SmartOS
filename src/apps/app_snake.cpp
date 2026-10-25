@@ -8,14 +8,10 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "os/fs.h"
-#include "os/krand.h"
-#include "s3hal/input.h"
+#include "smartos_app.h"
 
 #define CELL      8
-#define COLS      40               // 320 / 8
+#define COLS      (LCD_WIDTH / 8)
 #define TOP_ROW   3                // rows 0-2: the score line
 #define ROWS      27               // 216 / 8
 #define MAX_LEN   (COLS * (ROWS - TOP_ROW))

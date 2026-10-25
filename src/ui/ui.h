@@ -6,6 +6,8 @@
 #include "gfx/fb.h"
 #include "gfx/image.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 5.4c - the pieces every app's screen is made of.
 //
@@ -117,7 +119,7 @@ void ui_clear(fb_t *fb, const image_t *bg, int x, int y, int w, int h);
 // highlight colour - solid over a flat background, blended over a picture, so
 // the picture still shows through it.
 void ui_row_bg(fb_t *fb, const image_t *bg, int y, int h, bool selected);
-#define UI_SELECT_PCT 85        // how much of the highlight, over a picture
+// UI_SELECT_PCT is in smartos_config.h, section 18.
 
 // Text with an edge under it, for text that sits on a picture.
 //

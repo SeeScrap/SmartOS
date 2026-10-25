@@ -11,8 +11,8 @@
 #include "esp_littlefs.h"
 
 #include "kernel/kmbox.h"
-#include "os/kfmt.h"
-#include "s3hal/log.h"
+#include "kernel/kfmt.h"
+#include "board/log.h"
 
 #define FS_BASE   "/fs"
 #define FS_APPS   FS_BASE "/apps"

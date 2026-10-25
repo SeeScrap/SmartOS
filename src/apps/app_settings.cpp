@@ -11,13 +11,7 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
-#include "os/fs.h"
-#include "os/kfmt.h"
-#include "os/settings.h"
-#include "os/syslog.h"
-#include "s3hal/input.h"
-#include "ui/ui.h"
+#include "smartos_app.h"
 
 enum { ROW_BRIGHT, ROW_CLEAR, ROWS };
 

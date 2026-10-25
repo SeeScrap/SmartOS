@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "gfx/fb.h"
 #include "os/evbus.h"
 
@@ -140,20 +142,21 @@
 // เรียกตระกูล printf ของ libc (ให้ใช้ k_snprintf - ดู kfmt.h) หรือเรียกฟังก์ชัน
 // ของ FreeRTOS หรือไดรเวอร์ของ IDF ทั้งสองอย่างถือว่าตัวเองอยู่ใน task ของ
 // FreeRTOS ซึ่ง core 1 ไม่มี
+//
+// แอปคือฟังก์ชันเรียกกลับสี่ตัวกับชื่อหนึ่งชื่อ แอปที่กำลังรันแต่ละตัวเป็น task
+// ของเคอร์เนลของตัวเอง ตรึงไว้ที่คอร์ 1 และถูกแย่งซีพียูได้ แอปที่ไม่ยอมคืนคอร์
+// จึงทำให้ตัวอื่นช้าลงได้ แต่หยุดมันไม่ได้ และแตะงาน USB แฟลช หรือจอของคอร์ 0
+// ไม่ได้เลย
+//
+// แถวที่ 0-23 เป็นแถบสถานะซึ่งคอร์ 0 เป็นคนวาด แถวที่ 24-239 เป็นพื้นที่ของแอป
+// แอปวาดลงใน view ของพื้นที่นั้นเท่านั้น แถบสถานะจึงอยู่นอกมือของมันโดยโครงสร้าง
+// และมีแค่แอปที่ได้โฟกัสเท่านั้นที่วาด
 // ---------------------------------------------------------------------------
 
-#define APP_MAX        8
-
-// Stage 5.5 - DOWN held, then BACK: the app in front is minimised. It keeps
-// running; Home lists it under "Running" and opening it again brings it back.
-//
-// A DOWN press is held back this long to see whether BACK follows. A tap is
-// not delayed - its release flushes the held press at once - so only a DOWN
-// that is held down waits, and only by this much.
-#define APP_CHORD_MS   150
-#define APP_Q_LEN      16
-#define APP_AREA_Y     24
-#define APP_AREA_H     (240 - APP_AREA_Y)
+// APP_MAX, APP_CHORD_MS (the DOWN-then-BACK chord), APP_Q_LEN, APP_AREA_Y,
+// APP_REGISTRY_MAX, APP_MEM_RESERVE, APP_KERNEL_MAX and APP_STOP_GRACE_MS are
+// set in smartos_config.h, section 6.
+#define APP_AREA_H     (LCD_HEIGHT - APP_AREA_Y)
 
 // EV_SYS codes, in ev.a.
 enum {
@@ -260,9 +263,17 @@ uint16_t app_bg(void);
 // above puts the app in this list from a static constructor before app_main
 // runs. The number is the app's place in Home's list. Registering an app does
 // not start it: only the user does that, from Home.
-#define APP_REGISTRY_MAX 16
-
 bool         app_register(const app_t *app, int order);
+
+// Takes one back out again (stage 7). Only an installed app is ever
+// unregistered - a built-in one is in the firmware and cannot leave - so this
+// is how uninstalling works. Refuses nothing: the caller has already checked
+// that the app is closed.
+bool         app_unregister(const app_t *app);
+
+// Is that app running right now? Uninstalling one that is would leave the
+// runtime holding a pointer into memory about to be freed.
+bool         app_is_open(const char *name);
 int          app_registry_count(void);
 const app_t *app_registry_at(int i);           // in order
 const app_t *app_find(const char *name);
@@ -284,16 +295,6 @@ int  app_start(const app_t *app);
 // asks before opening, so it can say what is missing instead of just failing.
 // Apps stay open in the background once minimised, so this is what stops the
 // board being filled past what it has.
-#define APP_MEM_RESERVE 8192        // kernel pool kept free for the kernel itself
-
-// Stage 5.4e - and no single app may take more than this of it, stack and
-// state together. Without a ceiling, "does it fit" depended on what else was
-// open: the same app started on a quiet board and was refused on a busy one,
-// and one careless app could leave the pool with nothing for the next. The
-// figure is a quarter of the 128 KB pool - a 16 KB stack (K_STACK_MAX) and
-// still 16 KB of state, far past anything here: the largest app today is the
-// task manager at about 3 KB.
-#define APP_KERNEL_MAX (32 * 1024)
 // PSRAM is judged against what the open apps were promised, not only against
 // what they have taken: an app that is running keeps its budget.
 typedef enum {
@@ -310,7 +311,6 @@ const char *app_can_why(app_can_t r);
 // Asks an app to finish. It exits at its next event; focus moves on if it had
 // it. An app that has not ended APP_STOP_GRACE_MS later - one stuck in a loop
 // never reads the request - is killed (stage 5.2).
-#define APP_STOP_GRACE_MS 2000
 void app_stop(int id);
 
 // Stage 5.2. Ends an app now, whatever it is doing - k_task_kill underneath.

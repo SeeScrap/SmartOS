@@ -7,9 +7,9 @@
 
 #include "os/evbus.h"
 #include "os/syslog.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 
 void sdk_case(const char *what, bool ok, const char *detail)
@@ -27,7 +27,7 @@ void pump(uint32_t ms)
     const int64_t end = esp_timer_get_time() + (int64_t)ms * 1000;
     while (esp_timer_get_time() < end) {
         system_pass();
-        hal_delay_ms(1);
+        kport_yield_ms(1);
     }
 }
 
@@ -48,7 +48,7 @@ int wait_gone(int id, uint32_t max_ms)
     while (app_get(id)) {
         if (esp_timer_get_time() - t0 > (int64_t)max_ms * 1000) return -1;
         system_pass();
-        hal_delay_ms(1);
+        kport_yield_ms(1);
     }
     return (int)((esp_timer_get_time() - t0) / 1000);
 }

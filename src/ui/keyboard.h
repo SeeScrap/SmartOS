@@ -4,6 +4,8 @@
 
 #include "gfx/fb.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 6.4a - a keyboard for six buttons.
 //
@@ -61,9 +63,7 @@
 // ต้องการมากกว่านี้
 // ---------------------------------------------------------------------------
 
-#define UI_KB_COLS   10
-#define UI_KB_ROWS   5          // four rows of characters, then the wide keys
-#define UI_KB_MAX    64         // characters it will hold, plus the terminator
+// UI_KB_COLS, UI_KB_ROWS and UI_KB_MAX are in smartos_config.h, section 18.
 
 typedef struct {
     char    text[UI_KB_MAX + 1];

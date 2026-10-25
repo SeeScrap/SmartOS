@@ -5,8 +5,8 @@
 #include "gfx/text.h"
 #include "os/app.h"
 #include "os/settings.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/lcd_panel.h"
+#include "port/kport.h"
+#include "board/lcd_panel.h"
 
 // The look. Near-black rather than black: on this panel a true black next to
 // the dark slate of the mark shows the panel's own backlight unevenness, and
@@ -104,8 +104,8 @@ static void paint(fb_t *fb, bool all)
     if (all) {
         fb_clear(fb, BG);
         draw_mark(fb);
-        const int tw = fb_text_width("Project S3", 2);
-        fb_text(fb, s_cx - tw / 2, s_logo_y + 76, "Project S3", NAME, 2);
+        const int tw = fb_text_width("SmartOS", 2);
+        fb_text(fb, s_cx - tw / 2, s_logo_y + 76, "SmartOS", NAME, 2);
     }
     draw_spinner(fb);
     draw_what(fb);
@@ -148,7 +148,7 @@ void boot_screen_begin(fb_t *fb)
     // there is nothing to see arriving.
     for (int pct = 0; pct <= 100; pct += 5) {
         lcd_backlight_pct((uint8_t)pct);
-        hal_delay_ms(8);
+        kport_yield_ms(8);
     }
     s_shown = true;
 
@@ -170,7 +170,7 @@ void boot_screen_hold(void)
 {
     if (!s_shown || !s_fb) return;
     s_what = "ready";
-    while ((esp_timer_get_time() - s_begin_us) / 1000 < BOOT_MIN_MS) hal_delay_ms(10);
+    while ((esp_timer_get_time() - s_begin_us) / 1000 < BOOT_MIN_MS) kport_yield_ms(10);
 }
 
 // Pixels of the mark's edge colour on the panel right now. Counted at the end
@@ -190,7 +190,7 @@ void boot_screen_end(void)
     if (!s_fb) return;
     if (s_tick) {                    // the spinner stops before the panel changes hands
         esp_timer_stop(s_tick);          // no new callback starts after this
-        while (s_in_tick) hal_delay_ms(1);   // ...and the one in flight finishes
+        while (s_in_tick) kport_yield_ms(1);   // ...and the one in flight finishes
         esp_timer_delete(s_tick);
         s_tick = nullptr;
     }

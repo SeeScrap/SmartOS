@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "os/evbus.h"
-#include "s3hal/log.h"
+#include "board/log.h"
 #include "tests/harness.h"
 
 // ---------------------------------------------------------------------------

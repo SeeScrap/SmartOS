@@ -5,8 +5,8 @@
 
 #include "gfx/fb.h"
 #include "os/evbus.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 

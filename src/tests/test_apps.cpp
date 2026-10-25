@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -10,9 +10,9 @@
 #include "apps/apps.h"
 #include "os/app.h"
 #include "os/evbus.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 
@@ -20,7 +20,7 @@
 // Stage 4.3b - the app model, driven by script (moved out of main.cpp in 5.4b).
 //
 // These open apps, which on a normal boot only the user does, so the whole
-// file is empty unless the build says -D S3_TEST_APPS.
+// file is empty unless the build says -D SMARTOS_TEST_APPS.
 // ---------------------------------------------------------------------------
 
 
@@ -196,7 +196,7 @@ void close_user_apps(void)
     logf("  test apps closed: %d still open\n", app_user_count());
 }
 
-#ifdef S3_TEST_APPHOG
+#ifdef SMARTOS_TEST_APPHOG
 // An app that never yields, next to one that needs a steady 50 frames a
 // second. Measured before and after the hog starts: bounce's frame rate and
 // the input sampler's pass rate, which should not change.
@@ -229,6 +229,6 @@ void app_hog_test(int bn)
          (unsigned long)smp_before, (unsigned long)smp_after,
          (smp_after + 5 >= smp_before) ? "OK" : "!! SLOWED");
 }
-#endif // S3_TEST_APPHOG
+#endif // SMARTOS_TEST_APPHOG
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

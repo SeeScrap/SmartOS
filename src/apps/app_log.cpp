@@ -13,11 +13,7 @@
 
 #include <string.h>
 
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "os/syslog.h"
-#include "s3hal/input.h"
-#include "ui/ui.h"
+#include "smartos_app.h"
 
 #define TEXT_MAX  3072
 #define LINES_MAX 96

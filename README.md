@@ -1,8 +1,13 @@
-# Project S3
+# SmartOS
 
 *[อ่านฉบับภาษาไทย](README.th.md)*
 
 A custom OS for the ESP32-S3, built from the kernel upwards.
+
+> The stage-by-stage record below was written while this was called Project
+> S3, and it still says so in places. The code was renamed in one go late on
+> (see `R3` in the history); the record was left as it was written, because
+> rewriting it would make it a worse record.
 
 The kernel does not sit on top of FreeRTOS - it owns core 1 outright. IDF is
 built unicore, so FreeRTOS never starts the second core, and the kernel takes
@@ -12,7 +17,7 @@ handed to it over a mailbox.
 
 ```
  CORE 0                          CORE 1
- IDF + FreeRTOS                  S3-OS
+ IDF + FreeRTOS                  SmartOS
   - USB console                   - vector table   (kvectors.S)
   - flash / PSRAM                 - CCOMPARE0 tick (ktime.cpp)
   - mailbox worker                - scheduler      (ksched.cpp)
@@ -32,7 +37,7 @@ handed to it over a mailbox.
 | Note | the module's SDO never reaches the controller, so the panel cannot be identified by reading it - `-D LCD_FORCE_CTRL` names it instead |
 | Input | 6 buttons to GND, read with internal pull-ups |
 
-Wiring lives in [src/board/pins.h](src/board/pins.h). **GPIO 26-37 are off limits**
+Wiring lives in [src/board/pins.h](src/board/devkitc_n16r8.h). **GPIO 26-37 are off limits**
 on this module - they belong to the octal flash and PSRAM.
 
 **The buttons are two wires each**: one side to the GPIO, the other to GND,
@@ -54,17 +59,30 @@ are, and how to add an app or a test ([ฉบับภาษาไทย](CONTRI
 ## What is in here
 
 ```
-src/kernel/     the kernel: vector table, scheduler, context switch, allocator,
-                mailbox, timer, locks, the flash park        (3,800 lines)
+components/smartos/       the kernel, and what it stands on. Its own ESP-IDF
+                component, so its REQUIRES list is a machine-checked claim
+                about what it depends on - and examples/kernel_blink builds
+                against it alone.
+  kernel/       scheduler, context switch, allocator, mailbox, timer, locks,
+                the fault reporter. No ESP-IDF headers at all   (3,800 lines)
+  arch/xtensa/  the vector table, the context switch, compare-and-swap, the
+                interrupt mask. Replaced on a port to another architecture
+  port/         this chip: starting core 1, the inter-processor interrupt
+                that parks it, the console, the heap carve at boot
+include/        smartos.h for a program on the kernel, smartos_app.h for an
+                app on the OS, smartos_config.h for every setting
 src/os/         services the apps are built on: event bus, app model, files,
                 settings, system log, shell, screen, radio   (4,700 lines)
 src/gfx/        framebuffer, damage tracking, 5x8 font, pictures
-src/s3hal/      the board: SPI panel, buttons, console
+src/board/      the board: SPI panel, buttons, console
 src/ui/         what every app's screen is made of: lists, bars, confirmation,
                 the on-screen keyboard
 src/apps/       the apps, one file each - drop a file in, it registers itself
 src/tests/      every claim in this README, as code that runs on the board
                                                              (3,200 lines)
+examples/       kernel_blink/ is a separate project that builds against the
+                kernel component and nothing else - the proof that the layers
+                really do come apart. See examples/README.md
 tools/          the host side: shell driver, screenshots, picture converter,
                 font generator, Wi-Fi survey                   (860 lines)
 docs/screens/   screenshots taken through tools/screenshot.py
@@ -77,6 +95,67 @@ docs/prototype_arduino/   where this started, before stage 2.0 moved it off
 Two files are generated and committed because the build needs them:
 `src/gfx/wallpaper_data.cpp` (from `docs/art/`, by `tools/mkimage.py`) and
 `src/gfx/font5x8.h` (from `tools/font5x8.txt`, by `tools/gen_font.py`).
+
+## Writing for SmartOS
+
+Three different jobs, and the system makes the difference explicit. There is a
+worked example of each in **[examples/](examples/)**.
+
+| | a program on the kernel | an app in the firmware | an app the user installs |
+|---|---|---|---|
+| is | its own project, pointed at `components/smartos` | one file dropped in `src/apps/` | a file sent over USB |
+| written in | C++, including `smartos.h` | C++, including `smartos_app.h` | the little language, compiled by `tools/sappc.py` |
+| you get | tasks, mutexes, semaphores, queues, the clock, the heap, `klog` | all of that, plus the screen, events, files, settings, the log, the toolkit, the buttons | nineteen numbered system calls |
+| started by | its own `app_main` | the user, from Home | the user, from Home |
+| rebuilds the OS | no | **yes** | **no** |
+| if it crashes | the board | the board | only itself |
+| if it loops for ever | the watchdog | killed after 2 s | stopped after 20,000 instructions |
+| example | [examples/kernel_blink/](examples/kernel_blink/) — 175 KB of flash, 17 KB of RAM | [src/apps/app_hello.cpp](src/apps/app_hello.cpp) — copy it | [examples/apps/tally.sap](examples/apps/tally.sap) — 246 bytes |
+
+`examples/kernel_blink` is a separate PlatformIO project that builds against
+the kernel component and three ESP-IDF components, with no part of the
+operating system in it at all. That it links and runs is the reason the layers
+are arranged the way they are.
+
+The third column is stage 7, and it is the one that changes what this board
+is: **installing an app does not reflash the firmware.** The app lands on the
+`storage` partition, registers itself at the next boot and appears in Home
+beside the built-in ones. It is interpreted rather than native, which is a
+measured decision and not a limitation worked around — see
+[Stage 7](#stage-7---apps-the-user-installs) for what the chip was asked and
+what it answered.
+
+Every setting the system has is one file, **[include/smartos_config.h](include/smartos_config.h)**:
+eighteen sections, every entry wrapped in `#ifndef` so a project can override
+it from `build_flags` without editing the file, and every number that was
+chosen by measurement carries the measurement with it. A running board will
+tell you what it was built with - the first four lines after the hardware are
+the configuration it actually has.
+
+## Porting it
+
+The parts that would change are separated, and the separation is enforced by
+the build rather than asserted here:
+
+| | holds | replaced when |
+|---|---|---|
+| `components/smartos/kernel/` | scheduler, locks, heap, clock, mailbox, faults | never - it has no ESP-IDF or chip headers at all |
+| `components/smartos/arch/xtensa/` | vector table, context switch, compare-and-swap, interrupt mask | moving to a different instruction set |
+| `components/smartos/port/` | starting core 1, the inter-processor interrupt, the console, the heap carve | moving to a different chip |
+
+The component's `REQUIRES` list in
+[components/smartos/CMakeLists.txt](components/smartos/CMakeLists.txt) is the
+dependency claim, and CMake enforces it: seven ESP-IDF components, all of them
+reached from `port/`. A kernel file that reaches for anything else stops the
+build.
+
+What a port has to provide is the handful of functions in
+[components/smartos/port/kport.h](components/smartos/port/kport.h) - placing
+code in RAM, a console, a microsecond delay, the core id, an inter-processor
+interrupt, and a one-off heap carve at boot - plus starting the second core.
+It is deliberately inline functions and link-time symbols rather than a table
+of function pointers: the context switch and the spinlocks are measured in
+instructions, so everything on those paths has to resolve at compile time.
 
 ## Build
 
@@ -91,10 +170,25 @@ here was measured against. `managed_components/` is not in the repository
 because that file is what restores it.
 
 **The board checks itself at every boot** and prints the result over USB, so
-`-t monitor` is not optional reading: 51 cases on an ordinary boot, and with
-`-D S3_TEST_APPS` in `build_flags`, 134. The other test builds - the kernel
-under load, a full filesystem, an app that never yields - are listed with what
-each one must print at the bottom of [platformio.ini](platformio.ini).
+`-t monitor` is not optional reading: 74 cases on an ordinary boot, and with
+`-D SMARTOS_TEST_APPS` in `build_flags`, 158. `python tools/boot_check.py` resets
+the board, counts them for you and compares the case names against a committed
+baseline, so a test that quietly stops running is noticed. The other test
+builds - the kernel under load, a full filesystem, an app that never yields -
+are listed with what each one must print at the bottom of
+[platformio.ini](platformio.ini).
+
+> **The numbers moved twice, in opposite directions.** The stage-by-stage
+> record below quotes 51 and 134, and later 51 and 135. Those came from
+> counting every line of
+> the boot log that ends in `OK`, and three of those lines are not tests:
+> ESP-IDF's own `SPI SRAM memory test OK`, and the `[consumer]` and `[mbox]`
+> demo tasks reporting their own sums. Nothing regressed; the count was
+> wrong, not the firmware. The real figures were 48 and 132. They are 74
+> and 158 now because stage 7's two suites - the bytecode machine and the
+> loader - used to run only behind a build flag, and from S7h they run on
+> every boot like everything else. The per-stage numbers are left as they
+> were written, because that is what was measured at the time.
 
 The host-side tools in [tools/](tools/) talk to the board over the same USB
 connection: `shell_test.py` drives the shell through its whole command set,
@@ -105,7 +199,7 @@ Two environment constraints, both learned the hard way:
 
 * **No spaces anywhere in the project path.** ESP-IDF's build system rejects
   them outright, which is why this folder is `Project_S3`.
-* **Our HAL is `src/s3hal/`, not `src/hal/`.** IDF ships its own
+* **Our HAL is `src/board/`, not `src/hal/`.** IDF ships its own
   `hal/log.h`, and a quoted include from inside a directory called `hal`
   finds IDF's copy instead of ours. See the note in [src/CMakeLists.txt](src/CMakeLists.txt).
 
@@ -197,7 +291,7 @@ through it:
 Under the cooperative scheduler the same demo printed nothing from the ticker
 until tick 202, after the hog had finished. Three runs back to back, no faults.
 
-The interrupt entry ([kernel/kvectors.S](src/kernel/kvectors.S)) leaves
+The interrupt entry ([kernel/kvectors.S](components/smartos/arch/xtensa/kvectors.S)) leaves
 exception mode, saves all sixteen address registers plus SAR and the loop
 registers, and calls C on the interrupted task's own stack. That last choice is
 what makes it simple: `k_yield()` from inside the interrupt is an ordinary call,
@@ -276,7 +370,7 @@ it would take the USB console and the flash driver with it.
    printf - nowhere near the cause. Fixed by reserving 32 bytes instead of 16.
 2. **Both cores were writing the console with no arbitration.** `esp_rom_printf`
    on core 1 and `printf` on core 0 push at the same USB-serial-JTAG FIFO. Fixed
-   with a real cross-core spinlock built on `S32C1I` ([kernel/kspin.h](src/kernel/kspin.h)).
+   with a real cross-core spinlock built on `S32C1I` ([kernel/kspin.h](components/smartos/kernel/kspin.h)).
 3. **`k_exit` halted the core while tasks were still sleeping.** "Nothing is
    READY" is not "nothing is left" - a sleeper becomes runnable when the tick
    says so. Fixed by idling in `waiti` while any task is still asleep.
@@ -323,7 +417,7 @@ span hundreds of milliseconds before anything interesting happened.
 
 Every stack has a 256-byte run-off area below it, and the word immediately under
 the usable stack is checked on every switch-out - one compare per switch. With
-`-D S3_TEST_STACK_OVERFLOW`:
+`-D SMARTOS_TEST_STACK_OVERFLOW`:
 
 ```
 [overflow] overrunning a 2048 byte stack on purpose
@@ -352,7 +446,7 @@ The guard detects, it does not protect - a task that overruns keeps running on a
 stack that is too small. What it buys is that the failure has a name and a task
 id instead of being a lockup somewhere else entirely.
 
-Also checked statically, from the ELF: `s3_vector_table` is 1 KB aligned
+Also checked statically, from the ELF: `k_vector_table` (named `s3_vector_table` until R3a) is 1 KB aligned
 (VECBASE requires it) with all fifteen vectors on their exact offsets, and every
 function and variable core 1 touches is in IRAM/DRAM, never flash.
 
@@ -443,7 +537,7 @@ look much the same mirrored, and no single explanation fit.
    left-right mirror into a 180 degree rotation - the same mistake twice, not a
    new symptom. Landscape is `0xA0` = `MV | MY`.
 
-The test that settled it is kept as `-D S3_GFX_SELFTEST`: a different colour in
+The test that settled it is kept as `-D SMARTOS_GFX_SELFTEST`: a different colour in
 each corner and a wide bar across the middle, so inversion, colour order and
 rotation each fail in their own distinguishable way.
 
@@ -839,8 +933,8 @@ The one compile error `-O2` raised was a real one: its deeper format-string
 analysis caught `ui_log_push` from 3.6 copying a 64-byte line into a 54-byte
 slot. The cut was intentional, and `%-52.52s` now says so.
 
-**Tests re-run under `-O2`:** default demo, `S3_PREEMPT_SOAK`,
-`S3_TEST_STACK_OVERFLOW`, `S3_TEST_CORE1_FAULT`. All passed, plus the new race
+**Tests re-run under `-O2`:** default demo, `SMARTOS_PREEMPT_SOAK`,
+`SMARTOS_TEST_STACK_OVERFLOW`, `SMARTOS_TEST_CORE1_FAULT`. All passed, plus the new race
 test below. The fault test showed one report printed twice, which turned out to
 be a code bug rather than a compiler effect. `wake_core1()` reported a pending
 fault without clearing it, and the 3.6 main loop then reported it again.
@@ -865,7 +959,7 @@ task would then run on both cores on one stack. The sampler escaped only
 because it is pinned to core 1. The `ticker` is not pinned, and it sleeps at
 high priority.
 
-`S3_TEST_SLEEP_CLAIM` reproduces the race. A single `K_CPU_ANY` task sleeps
+`SMARTOS_TEST_SLEEP_CLAIM` reproduces the race. A single `K_CPU_ANY` task sleeps
 1 ms, 3,000 times, alone on core 1, with core 0 in the scheduler beside it. It
 holds a flag across each sleep, so a second copy would find the flag taken.
 Before the fix the second copy never got that far: core 0 took a **double
@@ -908,7 +1002,7 @@ work in stage 4.
 | 4.3a | park core 1 around every flash operation, so apps can live in flash and PSRAM | **verified on hardware** |
 | 4.3b | app model on core 1: `{name, init, on_event, draw}`, start/stop, focus | **verified on hardware** (force-kill deferred to stage 5) |
 | 4.3c | app SDK: one-file apps, device service (GPIO, ADC), lines/circles, k_rand; scope, snake, hello | **verified on hardware** |
-| 4.3d | apps run only when opened: Home launcher, hold BACK closes, app tests behind `S3_TEST_APPS` | **verified on hardware** |
+| 4.3d | apps run only when opened: Home launcher, hold BACK closes, app tests behind `SMARTOS_TEST_APPS` | **verified on hardware** |
 | 4.4 | LittleFS for apps (own folder each), every flash op parks core 1, core 1 put to sleep on restart | **verified on hardware** |
 | 4.5 | system log (batched, rotated, rate-limited) and settings on the filesystem; brightness PWM; settings and log apps; ADC sampled from an IRAM timer interrupt | **verified on hardware** |
 
@@ -928,7 +1022,7 @@ into the new one.
 
 #### Catching it first
 
-`S3_TEST_MBOX_STRESS` runs four posters, two pinned to each core, each making
+`SMARTOS_TEST_MBOX_STRESS` runs four posters, two pinned to each core, each making
 250 calls that sum an array unique to that poster and iteration, so a wrong
 answer identifies a collision. Two things were needed before it could catch
 anything:
@@ -1043,7 +1137,7 @@ from 66 to 86 KB of 320.
 The 3.6a debouncer cases also still pass unchanged. They now read the bus as a
 subscriber, which checks that moving input onto the bus lost nothing.
 
-#### 4.2b - under load, with the kernel running (`-D S3_TEST_EVBUS`)
+#### 4.2b - under load, with the kernel running (`-D SMARTOS_TEST_EVBUS`)
 
 ```
 [bus s1] task id 17: 4000 events, 0 out of order, 0 bad payloads, 0 dropped, id sum 8306752 ... OK
@@ -1087,7 +1181,7 @@ preemption, a runaway app takes USB and flash down with it), core 1 with
 everything in IRAM (150 KB framebuffer in internal RAM and every app function
 `IRAM_ATTR`), or core 1 with a park. The park won.
 
-**How it works** (`src/kernel/kpark.*`):
+**How it works** (`components/smartos/kernel/kpark.*`):
 
 1. Core 0 raises `FROM_CPU_INTR3`, routed to CPU interrupt 2 on core 1 only.
    IDF would use that source for core 1's `esp_ipc_isr`, and never does in a
@@ -1118,13 +1212,13 @@ operation go ahead unprotected.
 
 #### Proof
 
-`-D S3_TEST_PARK` runs a task on core 1 that executes **flash-resident code**
+`-D SMARTOS_TEST_PARK` runs a task on core 1 that executes **flash-resident code**
 (no `IRAM_ATTR`, at `0x42001c9c`) reading a table in flash `.rodata` through a
 `volatile` pointer, so `-O2` can't fold it away, and writing PSRAM, flat out.
 Meanwhile core 0 erases, writes and verifies the storage partition's last
 sector 40 times.
 
-`-D S3_TEST_PARK_OFF`, the same with the park switched off:
+`-D SMARTOS_TEST_PARK_OFF`, the same with the park switched off:
 
 ```
   40 rounds verified, 0 bad, 0 refused; core 1 ran 41 passes, 0 wrong
@@ -1184,7 +1278,7 @@ An app is a name and four callbacks, `{init, on_event, draw, stop}` (in
 task **pinned to core 1**, a bus subscription, zeroed state of the size the
 app asks for, and a place to draw. Apps are ordinary code in flash, drawing
 into PSRAM, which stage 4.3a made safe on core 1. They format text with
-`k_snprintf` (`src/os/kfmt.h`), because libc's printf family reaches FreeRTOS's
+`k_snprintf` (`components/smartos/kernel/kfmt.h`), because libc's printf family reaches FreeRTOS's
 per-task state and core 1 has no FreeRTOS task.
 
 Three apps ship in `src/apps/`: **input** (stage 3.6's button screen, moved
@@ -1229,7 +1323,7 @@ arrive the same way, on the bus.
   restart reuses the slot        id 2 (was 2), 3 apps                         OK
 ```
 
-And `-D S3_TEST_APPHOG` adds an app whose `init()` never returns, next to bounce:
+And `-D SMARTOS_TEST_APPHOG` adds an app whose `init()` never returns, next to bounce:
 
 ```
   hog app id 3, spun 23783031 times in that second
@@ -1317,7 +1411,7 @@ nothing in the tree, and it's in the registry list the boot test prints.
 
 **Rules** (all in `src/os/app.h`):
 
-- **Format text with `k_snprintf`** (`os/kfmt.h`), never libc's printf family.
+- **Format text with `k_snprintf`** (`kernel/kfmt.h`), never libc's printf family.
   Apps run on core 1, and newlib reaches per-task state through FreeRTOS, which
   core 1 doesn't have.
 - **No IDF driver calls.** Hardware goes through the device service
@@ -1435,7 +1529,7 @@ starts it.**
 - **Holding BACK closes the focused app.** Its task ends, and its memory,
   timers and sensor streams go back; Home has the screen again. A closed app
   is not running, and opening it again starts from scratch.
-- **The tests that open apps are a build of their own**, `-D S3_TEST_APPS`.
+- **The tests that open apps are a build of their own**, `-D SMARTOS_TEST_APPS`.
   A normal boot doesn't open an app even to test one. The scripted tests that
   open nothing (debouncer, event bus, SDK) still run on every boot.
 
@@ -1449,7 +1543,7 @@ The default boot now:
 
 One frame in half a minute: Home drew itself once, and nothing has run since.
 
-`-D S3_TEST_APPS`, the user's side of it, by script:
+`-D SMARTOS_TEST_APPS`, the user's side of it, by script:
 
 ```
   OK opens the chosen app        counter id 1, focused: yes, apps open 1      OK
@@ -1539,7 +1633,7 @@ through the global hook:
   boot count, parked           boot #2; 86 flash ops, 86 parks, 0 unparked    OK
 ```
 
-`-D S3_TEST_APPS` runs the API from where apps really call it, a test app on
+`-D SMARTOS_TEST_APPS` runs the API from where apps really call it, a test app on
 core 1:
 
 ```
@@ -1585,7 +1679,7 @@ second core: clear its entry point, reset it, stall it. The stall outlives core
 0's reset, so core 1 sleeps through the next boot until `kcore1_start` wakes it
 on purpose.
 
-`-D S3_TEST_PANIC_REBOOT` checks it. It crashes core 0 deliberately while core
+`-D SMARTOS_TEST_PANIC_REBOOT` checks it. It crashes core 0 deliberately while core
 1 is running, and a marker file on the filesystem makes it crash exactly once.
 Then it checks the next boot. **With the wrap off**, that boot hit a core 1
 `StoreProhibited` fault and failed. **With it on**:
@@ -1667,7 +1761,7 @@ Every boot:
   settings applied             backlight 100 %, PWM duty 1023 of 1023 (want 1023) OK
 ```
 
-`-D S3_TEST_APPS`, driven through the real apps:
+`-D SMARTOS_TEST_APPS`, driven through the real apps:
 
 ```
   brightness via the app       70 %, duty 716; saves 0 at 0.3 s, 1 at 1.6 s; file: backlight=70 OK
@@ -1976,7 +2070,7 @@ only judges LIVE ones, never a context `app_start` is still filling in.
 
 #### Tests
 
-`-D S3_TEST_APPS` adds apps built to be killed (`app_killtest.cpp`, not
+`-D SMARTOS_TEST_APPS` adds apps built to be killed (`app_killtest.cpp`, not
 registered): one spinning in `init`, one spinning inside `draw()` while
 holding the screen, one sleeping in a loop, and one reading a file in a loop
 into a buffer on its own stack.
@@ -1998,7 +2092,7 @@ The whole test build, twice: 80 OK, 0 FAIL. For the mailbox case, core 0 is
 kept away from the mailbox for 20 ms first, so the killed app's call is
 sitting there POSTED, the case that matters.
 
-**With and without the mailbox cleanup.** `-D S3_TEST_KILL_NOFORGET` skips
+**With and without the mailbox cleanup.** `-D SMARTOS_TEST_KILL_NOFORGET` skips
 `kmbox_forget`:
 
 ```
@@ -2011,9 +2105,9 @@ DONE forever: one of the eight mailbox slots lost for good, on every kill of
 an app that was mid-call.
 
 Regression after the kernel and mailbox changes, each its own build:
-`S3_TEST_MBOX_STRESS` 1000 sums, 0 wrong, 40 of 40 timeouts accounted for,
-mailbox empty after; `S3_TEST_SLEEP_CLAIM` 3000 sleeps, 0 times a second copy;
-`S3_TEST_APPHOG` 82 OK, 0 FAIL, bounce holding 50 frames/s beside the hog, and
+`SMARTOS_TEST_MBOX_STRESS` 1000 sums, 0 wrong, 40 of 40 timeouts accounted for,
+mailbox empty after; `SMARTOS_TEST_SLEEP_CLAIM` 3000 sleeps, 0 times a second copy;
+`SMARTOS_TEST_APPHOG` 82 OK, 0 FAIL, bounce holding 50 frames/s beside the hog, and
 the hog now killed when the test apps are closed. Default boot 37 OK, 0 FAIL;
 `tools/shell_test.py` all OK with its new `kill` check.
 
@@ -2086,7 +2180,7 @@ runs with the flash cache off.
 
 #### Tests
 
-`-D S3_TEST_APPS`:
+`-D SMARTOS_TEST_APPS`:
 
 ```
   core 1 books balance         busy 0.3% idle 5.4% parked 94.2%; sum vs wall clock +0 per mille OK
@@ -2133,10 +2227,10 @@ This is the first time more than two CPU-bound apps shared core 1. Stage 5.5
 (apps kept running in the background) would have hit it at once.
 
 **Regression, after the scheduler change**, each its own build:
-`S3_TEST_SLEEP_CLAIM` 3000 sleeps, 0 times a second copy;
-`S3_TEST_MBOX_STRESS` 1000 sums, 0 wrong, mailbox empty after;
-`S3_TEST_APPS` + `S3_TEST_APPHOG` 91 OK, 0 FAIL, with bounce at 50 frames/s
-beside the hog; `S3_TEST_EVBUS` 4000 events to each subscriber, 0 lost, 0 out
+`SMARTOS_TEST_SLEEP_CLAIM` 3000 sleeps, 0 times a second copy;
+`SMARTOS_TEST_MBOX_STRESS` 1000 sums, 0 wrong, mailbox empty after;
+`SMARTOS_TEST_APPS` + `SMARTOS_TEST_APPHOG` 91 OK, 0 FAIL, with bounce at 50 frames/s
+beside the hog; `SMARTOS_TEST_EVBUS` 4000 events to each subscriber, 0 lost, 0 out
 of order. Default boot 37 OK, 0 FAIL; `tools/shell_test.py` all OK, with a new
 check that `ps`'s busy, parked and idle add up to 100 %.
 
@@ -2212,7 +2306,7 @@ writes DTR again after each RTS change, as esptool does.
 
 #### Tests
 
-`-D S3_TEST_APPS`, with a spinning app and flash writes to drive the graphs:
+`-D SMARTOS_TEST_APPS`, with a spinning app and flash writes to drive the graphs:
 
 ```
   performance page             page 1, 3 samples; cpu 99.2%, memory 66.8% (heap 66.8%), flash 84.1%;
@@ -2285,7 +2379,7 @@ a block header or a payload, and no ended task holds a stack.
   kernel memory                internal 11584 of 130928 B used, psram 4095 KB pool; 0 ended tasks hold stacks OK
 ```
 
-`-D S3_TEST_APPS` adds an app that takes 1 MB of PSRAM, writes a pattern
+`-D SMARTOS_TEST_APPS` adds an app that takes 1 MB of PSRAM, writes a pattern
 through it and reads it back, then asks for 3.5 MB more, which can't fit:
 
 ```
@@ -2297,9 +2391,9 @@ through it and reads it back, then asks for 3.5 MB more, which can't fit:
 ```
 
 Test build 93 OK, 0 FAIL, twice. Regression, each its own build:
-`S3_TEST_SLEEP_CLAIM` 0 second copies in 3000 sleeps; `S3_TEST_EVBUS` 4000
-events to each subscriber, 0 lost, 0 out of order; `S3_TEST_MBOX_STRESS`
-0 wrong in 1000 sums, mailbox empty after; `S3_TEST_APPS` + `S3_TEST_APPHOG`
+`SMARTOS_TEST_SLEEP_CLAIM` 0 second copies in 3000 sleeps; `SMARTOS_TEST_EVBUS` 4000
+events to each subscriber, 0 lost, 0 out of order; `SMARTOS_TEST_MBOX_STRESS`
+0 wrong in 1000 sums, mailbox empty after; `SMARTOS_TEST_APPS` + `SMARTOS_TEST_APPHOG`
 95 OK, 0 FAIL. Default boot 38 OK, 0 FAIL; `tools/shell_test.py` all OK.
 With the pools taken, ESP-IDF still has 166 KB of internal RAM and 3.9 MB of
 PSRAM free.
@@ -2392,7 +2486,7 @@ shows the reason on the screen and starts nothing: "bigger: not enough PSRAM".
 
 #### Tests
 
-`-D S3_TEST_APPS`:
+`-D SMARTOS_TEST_APPS`:
 
 ```
   DOWN+BACK minimises          focus Home, counter still open: yes, 2 events while minimised OK
@@ -2444,7 +2538,7 @@ wake through the mailbox (`screen_wake_k`) and swallows the press that did it.
 
 #### Tests
 
-`-D S3_TEST_APPS`:
+`-D SMARTOS_TEST_APPS`:
 
 ```
   every app says what it is    10 apps, 0 without a line, 0 too wide OK
@@ -2499,13 +2593,13 @@ Two things were needed to make the cut possible at all. `src/system.h`
 publishes the only two things a test wants from the boot file - `system_pass()`,
 one turn of core 0's loop, and `system_fb()`, the panel to count pixels in - so
 no test reaches into main.cpp's statics any more. And the files that open apps
-put their whole body inside `#ifdef S3_TEST_APPS`, so a normal build compiles
+put their whole body inside `#ifdef SMARTOS_TEST_APPS`, so a normal build compiles
 them to nothing: the default firmware is 379,977 bytes of flash, the same
 figure as before the move.
 
 #### What this stage found
 
-**`-D S3_TEST_APPHOG` stopped implying `-D S3_TEST_APPS`.** The line that made
+**`-D SMARTOS_TEST_APPHOG` stopped implying `-D SMARTOS_TEST_APPS`.** The line that made
 one mean the other sat at the top of main.cpp, where it had always been enough.
 Once the suites were their own translation units they never saw it, so the app
 build's files compiled empty and the link failed on seven undefined suites. It
@@ -2528,10 +2622,10 @@ the same numbers:
 
 ```
 default boot          38 OK, 0 FAIL      (flash 379,977 B, unchanged)
--D S3_TEST_APPS      102 OK, 0 FAIL
--D S3_TEST_APPHOG    104 OK, 0 FAIL      bounce 49 -> 51 frames/s with the hog,
+-D SMARTOS_TEST_APPS      102 OK, 0 FAIL
+-D SMARTOS_TEST_APPHOG    104 OK, 0 FAIL      bounce 49 -> 51 frames/s with the hog,
                                          sampler 490 -> 501 passes/s
--D S3_TEST_SLEEP_CLAIM                   builds (a kernel-test build compiles
+-D SMARTOS_TEST_SLEEP_CLAIM                   builds (a kernel-test build compiles
                                          the suites the same way a default one does)
 tools/shell_test.py   all OK
 ```
@@ -2624,7 +2718,7 @@ what went missing.
 
 #### Tests
 
-`-D S3_TEST_APPS`:
+`-D SMARTOS_TEST_APPS`:
 
 ```
   an app picks its stack       asked 1024, got 1024, 624 used, 3 frames deep  OK
@@ -2638,7 +2732,7 @@ what went missing.
 
 Seven of eight timers, not eight: one was already the status bar's clock.
 
-`-D S3_TEST_FSFULL` (its own build - it writes about 11 MB and takes four
+`-D SMARTOS_TEST_FSFULL` (its own build - it writes about 11 MB and takes four
 minutes):
 
 ```
@@ -2689,7 +2783,7 @@ too big is told so either way.
 
 #### Tests
 
-`-D S3_TEST_APPS`, with bounce drawing 50 frames a second:
+`-D SMARTOS_TEST_APPS`, with bounce drawing 50 frames a second:
 
 ```
   no frames while the screen is off  dark: 51 frames taken, 0 sent, 0 px;
@@ -2709,13 +2803,13 @@ Every build, re-run after all three:
 
 ```
 default boot          45 OK, 0 FAIL      (38 + the toolkit's 7)
--D S3_TEST_APPS      116 OK, 0 FAIL
--D S3_TEST_APPHOG    118 OK, 0 FAIL      bounce 49 -> 51 frames/s with the hog,
+-D SMARTOS_TEST_APPS      116 OK, 0 FAIL
+-D SMARTOS_TEST_APPHOG    118 OK, 0 FAIL      bounce 49 -> 51 frames/s with the hog,
                                          sampler 482 -> 500 passes/s
--D S3_TEST_FSFULL    117 OK, 0 FAIL      (4.5 minutes of it filling the disk)
--D S3_TEST_SLEEP_CLAIM  42 OK, 0 FAIL    3000 sleeps, 0 times a second copy ran
--D S3_TEST_EVBUS        46 OK, 0 FAIL    20 ms timer late by 0-3 ms
--D S3_TEST_MBOX_STRESS  42 OK, 0 FAIL    1000 sums, 0 wrong; mailbox empty after
+-D SMARTOS_TEST_FSFULL    117 OK, 0 FAIL      (4.5 minutes of it filling the disk)
+-D SMARTOS_TEST_SLEEP_CLAIM  42 OK, 0 FAIL    3000 sleeps, 0 times a second copy ran
+-D SMARTOS_TEST_EVBUS        46 OK, 0 FAIL    20 ms timer late by 0-3 ms
+-D SMARTOS_TEST_MBOX_STRESS  42 OK, 0 FAIL    1000 sums, 0 wrong; mailbox empty after
 tools/shell_test.py   all OK
 ```
 
@@ -2781,7 +2875,7 @@ hands the panel over - it answers the question a screenshot cannot: was the
 mark still there when the launcher took over, or had something drawn over it?
 And the duty proves the backlight really did come up.
 
-Default boot 46 OK, 0 FAIL; `-D S3_TEST_APPS` 117 OK, 0 FAIL;
+Default boot 46 OK, 0 FAIL; `-D SMARTOS_TEST_APPS` 117 OK, 0 FAIL;
 `tools/shell_test.py` all OK, including the new command.
 
 #### What this stage found
@@ -2893,7 +2987,7 @@ the other 16% is what Home draws on top - rows, names, the description line,
 and now their shadows. Turned off, that count falls to 67 (pixels that happen
 to match by colour) and the flat background takes 59,845.
 
-Default boot 46 OK, 0 FAIL; `-D S3_TEST_APPS` 121 OK, 0 FAIL.
+Default boot 46 OK, 0 FAIL; `-D SMARTOS_TEST_APPS` 121 OK, 0 FAIL.
 
 ### Stage 6.3 - the radio
 
@@ -3051,7 +3145,7 @@ floor and the full size, and that what is in use leaves room to work.
 
 #### Tests
 
-Six new cases in `-D S3_TEST_APPS`. None of them depends on what happens to be
+Six new cases in `-D SMARTOS_TEST_APPS`. None of them depends on what happens to be
 on the air - that is what the survey tool is for:
 
 ```
@@ -3068,7 +3162,7 @@ the event loop are created once per boot and never undone, which is 9,840 bytes
 of the 59,784 the radio took.
 
 Default boot 46 OK, 0 FAIL (the radio is not started, and the kernel still gets
-its full 128 KB); `-D S3_TEST_APPS` 127 OK, 0 FAIL; `tools/shell_test.py` all
+its full 128 KB); `-D SMARTOS_TEST_APPS` 127 OK, 0 FAIL; `tools/shell_test.py` all
 OK. Firmware 529 KB -> 1,110 KB of the 4 MB partition: the Wi-Fi stack is 580 KB
 of code whether it is started or not.
 
@@ -3126,7 +3220,7 @@ button mask and an event kind:
   delete, and a line that is full BACK emptied it: yes; 64 typed of 72, full flag 1 OK
 ```
 
-and two in `-D S3_TEST_APPS` that go the whole way - grid, line, Done, flash,
+and two in `-D SMARTOS_TEST_APPS` that go the whole way - grid, line, Done, flash,
 and back:
 
 ```
@@ -3138,7 +3232,7 @@ and back:
 The note file is deleted before that test starts, so what is found afterwards
 cannot be a leftover from an earlier run.
 
-Default boot 51 OK, 0 FAIL; `-D S3_TEST_APPS` 134 OK, 0 FAIL;
+Default boot 51 OK, 0 FAIL; `-D SMARTOS_TEST_APPS` 134 OK, 0 FAIL;
 `tools/shell_test.py` all OK.
 
 #### What this stage found
@@ -3161,6 +3255,191 @@ longer than 160 ms must cost it events. The claim now matches what the system
 actually promises - every reading the sampler took reached the app, and every
 one the app lost is covered by the time core 1 was parked - which is the same
 rule the event bus's timer test has used since stage 4.2 for lateness.
+
+## Stage 7 - apps the user installs
+
+The problem, in one sentence: all eight apps were compiled into the firmware,
+so adding one meant reflashing the board, which meant **overwriting the
+operating system in order to install a program**. On a desktop that would be
+absurd.
+
+The measurable goal was written down before any code: install an app over the
+USB cable, see it in Home, open it, reboot, uninstall it - and prove the
+firmware partition was never touched.
+
+### S7a - can this board run code it was not built with?
+
+Everything after this depended on three questions that documentation cannot
+answer, so a throw-away test build asked the hardware. It printed:
+
+```
+the probe, as built       probe_add at 0x420988ac, in flash (instruction bus)  OK
+executable memory exists  written at 0x3fceed58 (internal DRAM),
+                          called at 0x403ded58                                 OK
+a copy of it runs         copied 64 bytes, called it, got 1834 (want 1834)     OK
+PSRAM                     InstructionFetchError at 0x3c5269b4
+```
+
+Three things were learned, and two of them killed the plan:
+
+- **`MALLOC_CAP_EXEC` does not exist on this chip.** It is behind
+  `CONFIG_HEAP_HAS_EXEC_HEAP`, which the S3 does not set. There is no
+  executable heap to allocate from.
+- **Internal SRAM is dual-mapped.** The same bytes are written through
+  `0x3FC8_0000`+ and executed through `0x4037_0000`+, a fixed `SOC_I_D_OFFSET`
+  apart. Code written to a DRAM address and called at that address faults in
+  the cache; converted with `esp_ptr_diram_dram_to_iram()` it runs. That is
+  line 3 above.
+- **The instruction bus does not reach PSRAM at all.** Not slowly - at all.
+  The 4 MB the kernel heap keeps there can hold an app's data and never its
+  code.
+
+And the decisive one: line 3 only passed with `CONFIG_ESP_SYSTEM_MEMPROT`
+turned off. With it on - and it is on, and locked by the PMS hardware at boot
+- every byte the allocator hands out is non-executable.
+
+**So the choice was: turn the chip's memory protection off for the whole
+system, for ever, so that a file somebody downloaded can run as native code;
+or do not run native code.** Protection stayed on.
+
+### S7b - a machine instead
+
+An installed app is **data**, interpreted by a stack machine in
+[src/os/vm.h](src/os/vm.h): 33 opcodes, 32-bit words, four spaces that cannot
+overlap - code, constants, globals, operand stack - and **not one instruction
+in it takes an address**. There is nothing for a bad app to point at.
+
+Every way out is a checked error rather than a fault, and each one has a test
+that provokes it on every boot:
+
+```
+  an instruction it lacks      stopped: unknown instruction                    OK
+  reading past its own memory  stopped: index out of range                     OK
+  jumping out of the program   stopped: index out of range                     OK
+  taking from an empty stack   stopped: stack over- or underflow               OK
+  filling the stack            stopped: stack over- or underflow               OK
+  dividing by zero             stopped: divide by zero                         OK
+  looping for ever             stopped: ran too long                           OK
+  recursing without end        stopped: calls nested too deep                  OK
+  how fast it runs             2404 runs of 140 instructions in 100 ms,
+                               about 3365 k instr/s                            OK
+```
+
+3.4 million instructions a second, and a callback is cut off at
+`VM_BUDGET_PER_CALL` (20,000) instructions. An app that loops for ever is
+stopped in six milliseconds.
+
+**This came out safer than the thing it replaced.** A built-in app is compiled
+into the firmware and can do anything the kernel can; one stray pointer takes
+the board down. An installed app cannot form a pointer. A built-in app that
+hangs is killed two seconds later by the app manager (stage 5.2); an installed
+one never gets to hang.
+
+### S7c - the ABI is nineteen numbers
+
+[src/os/vm_sys.h](src/os/vm_sys.h) is the real interface: nineteen numbered
+calls, from `0 invalidate` to `18 height`. **Those numbers are the promise**,
+not the C names in `smartos_app.h` - an installed app never links against a
+symbol. A `static_assert` ties the table in `vm_sys.cpp` to the enum, so an
+entry added to one and not the other stops the build instead of quietly
+renumbering every app already on somebody's board.
+
+Strings are handles, not pointers: zero or more means an offset into the app's
+own string block, negative means one of two scratch buffers. `fmt` understands
+`%d` and nothing else, deliberately - handing a format string that came out of
+a file to a real `printf` is how a program gets talked into reading memory that
+is not its own.
+
+### S7d and S7e - the file, and the cable
+
+A 56-byte header, then the constant pool, the code and the strings laid end to
+end. Every length is checked against the file's actual size before a byte of
+it is trusted. The whole app - constants, code, strings, globals and stack -
+is one allocation from the kernel pool tagged with the app's owner id, so
+uninstalling gives back exactly what installing took.
+
+```
+install <name> <bytes>     then base64 lines, then `end`
+uninstall <name>
+apps
+```
+
+`tools/install_app.py` does it from a computer. Base64 over the line-based
+shell, because that keeps `tools/shell_test.py` able to drive the whole thing.
+
+**Nothing in Home was changed.** `app_register()` has been a run-time call
+since stage 4.3b, so an app that arrives as a file walks into the registry
+through the same door as one compiled in. That is why this stage is as small
+as it is, and it was luck rather than foresight.
+
+### The proof that the OS survives
+
+The point of the whole stage, run in one sitting on the board: compile
+`tally.sap` on a computer (246 bytes), install it over the cable, watch it
+appear in Home, open it with the buttons, press, close it, pull the power,
+plug it back in, find it still there, uninstall it - and then:
+
+```
+esptool verify_flash 0x10000 firmware.bin
+  verify OK (digest matched)
+```
+
+The firmware partition is byte-for-byte what was flashed. Installing a program
+did not touch the operating system, which is the sentence this stage exists to
+make it possible to write.
+
+### S7f - a language, because assembly is not a product
+
+[tools/sappc.py](tools/sappc.py) compiles a small language to the bytecode:
+`var`, `fun`, `if`/`else`, `while`, full operator precedence with
+short-circuit `&&` and `||`, strings, and system calls by name. No arrays and
+no pointers - the machine has no addresses, and that is the property that
+makes an installed app safe, so it is a thing to keep rather than a gap to
+fill.
+
+```
+app tally {
+    order 100
+    var count
+
+    on draw {
+        if (full) { text(8, 6, "Tally", 0x56BF, 2) }
+        text_bg(8, 50, fmt("pressed %d times", count), 0xFFFF, 0, 1)
+    }
+
+    on event {
+        if (ev_type == 0 && ev_a == 1) { count = count + 1  invalidate() }
+    }
+}
+```
+
+### S7h - the board installs an app on itself
+
+All of the above was proved by hand with a cable. That shows it worked once;
+nothing would have noticed it stopping. Both stage 7 suites run on every boot
+now.
+
+`examples/apps/selftest.sap` is compiled on a computer and embedded in the
+firmware as 98 bytes by `tools/mkappblob.py`. At boot the board writes it to
+`/fs/installed`, loads it through the same `appload_one()` the shell calls,
+focuses it, taps a button at it, and takes it away again:
+
+```
+  an app arrives as a file     98 bytes to /fs/installed/selftest.app          OK
+  it loads and registers       loaded; registry 12 -> 13, 263 B of the pool    OK
+  it opens, draws and hears a button  id 1, 1 frame(s), 4 event(s)             OK
+  it uninstalls cleanly        forgotten; registry back to 12, pool back       OK
+  rubbish is refused           junk: too short                                 OK
+  another ABI is refused       future: built for ABI 2, this is 1 - rebuild it OK
+```
+
+The only part of the real install path left out is the cable. The pool check
+is for the exact byte count, not "about the same".
+
+One wrong FAIL came out of writing this: the test opened the app and then
+asked why it had drawn no frames. An unfocused app never draws - that is the
+app model, and it has been checked since stage 4.3b. The test was wrong, not
+the loader.
 
 ## Measurements from stage 1
 
@@ -3198,6 +3477,6 @@ core 1    : asleep, never started by IDF
 ```
 
 If it stops before `[core1] alive`, the wake sequence in
-[kernel/kcore1.cpp](src/kernel/kcore1.cpp) is where to look. If it stops later,
+[kernel/kcore1.cpp](components/smartos/port/kcore1.cpp) is where to look. If it stops later,
 core 1 has faulted and core 0 prints a decoded report - to check that path
-itself works, build with `-D S3_TEST_CORE1_FAULT`.
+itself works, build with `-D SMARTOS_TEST_CORE1_FAULT`.

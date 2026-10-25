@@ -11,7 +11,7 @@
 #include "os/dev.h"
 #include "os/screen.h"
 #include "os/syslog.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 enum { FRAME_IDLE = 0, FRAME_DRAWING, FRAME_READY, FRAME_FLUSHING };
 
@@ -215,6 +215,35 @@ bool app_register(const app_t *app, int order)
     return true;
 }
 
+// Stage 7: an installed app leaves the registry when it is uninstalled. A
+// built-in one never does - it is in the firmware - so this only ever moves
+// an entry that arrived at run time.
+bool app_unregister(const app_t *app)
+{
+    for (int i = 0; i < s_reg_n; ++i) {
+        if (s_reg[i] != app) continue;
+        for (int k = i; k + 1 < s_reg_n; ++k) {
+            s_reg[k]       = s_reg[k + 1];
+            s_reg_order[k] = s_reg_order[k + 1];
+        }
+        s_reg_n--;
+        return true;
+    }
+    return false;
+}
+
+// Uninstalling an app that is still running would free the memory its task is
+// executing out of, so the caller asks first.
+bool app_is_open(const char *name)
+{
+    if (!name) return false;
+    for (int i = 0; i < APP_MAX; ++i) {
+        if (s_used[i] == SLOT_FREE) continue;
+        if (s_ctx[i].app && strcmp(s_ctx[i].app->name, name) == 0) return true;
+    }
+    return false;
+}
+
 int app_registry_count(void) { return s_reg_n; }
 
 const app_t *app_registry_at(int i)
@@ -245,7 +274,7 @@ void app_system_init(fb_t *screen)
     // The manager's queue exists before core 1 does, so no input published in
     // between is lost for want of somewhere to go.
     // EV_TIMER too, since 5.5: a held DOWN waits APP_CHORD_MS for a BACK.
-    s_mgr_sub = evbus_subscribe("appmgr", EV_MASK(EV_INPUT) | EV_MASK(EV_TIMER), s_mgr_q, 32);
+    s_mgr_sub = evbus_subscribe("appmgr", EV_MASK(EV_INPUT) | EV_MASK(EV_TIMER), EV_Q(s_mgr_q));
 }
 
 app_can_t app_can_start(const app_t *app)
@@ -325,7 +354,7 @@ int app_start(const app_t *app)
         memset(c->user, 0, app->user_size);
     }
 
-    c->sub = evbus_subscribe(app->name, app->mask, s_queues[id], APP_Q_LEN);
+    c->sub = evbus_subscribe(app->name, app->mask, EV_Q(s_queues[id]));
     if (c->sub < 0) {
         if (c->user) kfree(c->user);
         s_used[id] = SLOT_FREE;
@@ -465,7 +494,7 @@ void app_poll(void)
                 // Its mailbox slots first: until they are clear, core 0 could
                 // still write an answer into its stack, so the stack must not
                 // go back to the heap - which reaping allows.
-#ifndef S3_TEST_KILL_NOFORGET
+#ifndef SMARTOS_TEST_KILL_NOFORGET
                 const kmbox_forgot_t f = kmbox_forget((uint8_t)c->task, c->task_gen);
 #else
                 const kmbox_forgot_t f = {};    // test only: what skipping it costs

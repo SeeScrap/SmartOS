@@ -9,8 +9,8 @@
 
 #include "kernel/kmbox.h"
 #include "os/fs.h"
-#include "os/kfmt.h"
-#include "s3hal/log.h"
+#include "kernel/kfmt.h"
+#include "board/log.h"
 
 #define LOG_PATH   "/fs/sys/log.txt"
 #define LOG_OLD    "/fs/sys/log.1.txt"

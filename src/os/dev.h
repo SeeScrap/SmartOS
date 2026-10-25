@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "os/app.h"
 
 // ---------------------------------------------------------------------------
@@ -21,13 +23,21 @@
 //
 // Everything the system itself uses - the LCD, touch, SD, buttons, flash and
 // PSRAM, native USB, UART0, the strapping pins - is refused (PINS_RESERVED in
-// board/pins.h). What is left for apps: 1, 2, 17, 18, 38-42, 48. The ADC is on
+// board/devkitc_n16r8.h). What is left for apps: 1, 2, 17, 18, 38-42, 48. The ADC is on
 // 1 and 2 (ADC1) and 17 and 18 (ADC2).
 //
 // WHAT IS NOT HERE YET
 //
 // I2C and SPI sensors, and pulse counting. The shape is the same - a handler
 // on core 0, a call on core 1 - and they slot in as further DEV_JOB_ ops.
+//
+// แอปรันบนคอร์ 1 และคอร์ 1 เรียกไดรเวอร์ของ IDF ไม่ได้ เพราะไดรเวอร์พวกนั้น
+// สร้างบน mutex กับ queue ของ FreeRTOS ซึ่งคอร์ 1 ไม่มี task ไปถือ ฮาร์ดแวร์
+// จึงเป็น "บริการ": ไดรเวอร์อยู่บนคอร์ 0 แอปขอผ่าน mailbox และค่าที่อ่านตามรอบ
+// เวลากลับมาเป็นเหตุการณ์ EV_SENSOR บนบัส
+//
+// มีสองอย่างที่ยังอยู่บนคอร์ 1 เพราะเป็นการเข้าถึงรีจิสเตอร์ครั้งเดียวและปลอดภัย
+// จากทุกที่ คือการอ่าน GPIO และการขับขาที่แอปตั้งเป็นขาออกเอง
 // ---------------------------------------------------------------------------
 
 typedef enum {
@@ -50,8 +60,6 @@ typedef enum {
 #define DEV_ERR_IO     -4   // the driver failed, or core 0 did not answer
 #define DEV_ERR_MODE   -5   // write to a pin that is not an output
 
-#define DEV_STREAMS        4
-#define DEV_STREAM_MIN_MS  2    // 500 samples a second per stream at most
 
 // --- for apps: kernel tasks on core 1 -------------------------------------------
 int  dev_gpio_mode(int pin, dev_mode_t mode);

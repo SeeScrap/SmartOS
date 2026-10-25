@@ -13,14 +13,8 @@
 // (app_can_start): slots, kernel memory, and the PSRAM the app declared it may
 // need. If there is not, nothing is started and this says why.
 
-#include "os/app.h"
+#include "smartos_app.h"
 
-#include "gfx/image.h"
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "os/settings.h"
-#include "s3hal/input.h"
-#include "ui/ui.h"
 #include "gfx/wallpaper.h"
 
 #define LIST_Y     32

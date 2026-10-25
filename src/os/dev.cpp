@@ -16,10 +16,10 @@
 #include "soc/gpio_reg.h"
 #include "soc/soc.h"
 
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "kernel/kmbox.h"
 #include "kernel/ktime.h"
-#include "s3hal/log.h"
+#include "board/log.h"
 
 enum {
     DEV_JOB_GPIO_MODE = KMBOX_OP_EXT,   // a0 = pin, a1 = dev_mode_t

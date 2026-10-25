@@ -7,14 +7,11 @@
 // the build folder .pio/build/s3-n16r8/ once so the build notices it.)
 //
 // What the runtime gives an app, and the rules it has to live by, are in
-// os/app.h. Hardware is in os/dev.h; text formatting in os/kfmt.h; random
+// os/app.h. Hardware is in os/dev.h; text formatting in kernel/kfmt.h; random
 // numbers in os/krand.h; drawing in gfx/fb.h and gfx/text.h.
 
-#include "os/app.h"
+#include "smartos_app.h"
 
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "s3hal/input.h"
 
 // Everything the app remembers. The runtime allocates it zeroed and hands it
 // back as c->user in every callback.

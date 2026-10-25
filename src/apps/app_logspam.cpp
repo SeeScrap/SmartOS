@@ -4,7 +4,7 @@
 
 #include "apps/apps.h"
 
-#include "os/syslog.h"
+#include "smartos_app.h"
 
 volatile bool g_logspam_done;
 

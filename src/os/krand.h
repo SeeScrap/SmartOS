@@ -12,6 +12,13 @@
 // One shared state for every caller. Two apps drawing numbers at the same
 // instant can interleave their updates and see related values; for games that
 // is harmless, and it keeps this free of locks.
+//
+// xorshift32: เร็ว เล็ก และดีพอสำหรับวางอาหารบนกระดานงู **ไม่ใช่**สำหรับอะไร
+// ที่ต้องเดาไม่ได้จากฝ่ายตรงข้าม หว่านเมล็ดจาก RNG ของฮาร์ดแวร์ตอนเริ่ม
+// หรือกำหนดเองด้วย k_srand() เมื่อการทดสอบต้องการลำดับเดิมสองรอบ
+//
+// สถานะเดียวใช้ร่วมกันทุกผู้เรียก สองแอปที่สุ่มพร้อมกันอาจได้ค่าที่สัมพันธ์กัน
+// สำหรับเกมถือว่าไม่เป็นไร และทำให้ตรงนี้ไม่ต้องมีล็อกเลย
 // ---------------------------------------------------------------------------
 
 void     k_srand(uint32_t seed);          // 0 re-seeds from the hardware

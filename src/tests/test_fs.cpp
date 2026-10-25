@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -9,15 +9,15 @@
 
 #include "esp_timer.h"
 
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 
 #include "apps/apps.h"
 #include "os/app.h"
 #include "os/dev.h"
 #include "os/fs.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 
@@ -124,4 +124,4 @@ void fs_live_test(void)
     pump(200);
 }
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -8,7 +8,7 @@
 #include "esp_heap_caps.h"
 
 #include "os/radio.h"
-#include "s3hal/log.h"
+#include "board/log.h"
 #include "tests/harness.h"
 
 // ---------------------------------------------------------------------------
@@ -131,4 +131,4 @@ void sys63_radio_test(void)
     }
 }
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

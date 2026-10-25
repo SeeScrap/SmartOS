@@ -8,7 +8,7 @@
 #include "os/evbus.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "s3hal/lcd_panel.h"
+#include "board/lcd_panel.h"
 
 enum { SCREEN_JOB = KMBOX_OP_EXT + 16 };   // settings has +14
 
@@ -53,7 +53,7 @@ static uint32_t h_screen(const k_job_t *, uint32_t *)
 
 void screen_init(void)
 {
-    s_sub     = evbus_subscribe("screen", EV_MASK(EV_INPUT), s_queue, 8);
+    s_sub     = evbus_subscribe("screen", EV_MASK(EV_INPUT), EV_Q(s_queue));
     s_last_ms = k_millis();
     kmbox_register(SCREEN_JOB, h_screen);
 }

@@ -4,7 +4,7 @@
 
 #include "gfx/text.h"
 #include "os/app.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 #include "ui/ui.h"
 
 // The four character rows. Ten to a row, so the grid is even and the cursor's

@@ -23,7 +23,7 @@ Then **read what the board prints**. It checks itself at every boot and says so:
   ...
 ```
 
-51 checks on an ordinary boot. If one of them says FAIL on hardware that should
+74 checks on an ordinary boot. If one of them says FAIL on hardware that should
 be working, that is a bug worth reporting with the whole line - the detail
 column is there so the number that was wrong is in the report.
 
@@ -31,7 +31,7 @@ column is there so the number that was wrong is in the report.
 
 An ESP32-S3-DevKitC-1 **N16R8** (16 MB flash, 8 MB octal PSRAM), a 2.4"
 240x320 SPI panel with an ST7789V, and six buttons. Wiring is in
-[src/board/pins.h](src/board/pins.h); the panel's pins are chosen to land on
+[src/board/pins.h](src/board/devkitc_n16r8.h); the panel's pins are chosen to land on
 the FSPI IOMUX pads, which is what allows 80 MHz.
 
 **Buttons: one side to the GPIO, the other to GND.** Nothing else - the chip's
@@ -58,7 +58,7 @@ regression visible later.
 
 **2. Core 1 may not call ESP-IDF.** The kernel owns core 1, and FreeRTOS does
 not exist there: no `printf`, no `malloc`, no driver calls, no `ESP_LOG`. Use
-`k_snprintf` (os/kfmt.h), `kmalloc`, and the mailbox (`kmbox_call`) for
+`k_snprintf` (kernel/kfmt.h), `kmalloc`, and the mailbox (`kmbox_call`) for
 anything that has to happen on core 0. An app that breaks this does not crash
 politely - it corrupts a core.
 
@@ -108,13 +108,14 @@ them rather than growing a fifth copy of a scrolling list, which is what stage
 ## Adding a test
 
 Tests live in `src/tests/`, one file per area, and print one line each. The
-ones that need apps running are inside `#ifdef S3_TEST_APPS` so an ordinary
+ones that need apps running are inside `#ifdef SMARTOS_TEST_APPS` so an ordinary
 build does not carry them.
 
 - Logic that needs no hardware → a new case in `tests/test_ui.cpp` or its
   neighbours; it runs on every boot.
-- Something that needs apps → `tests/test_apps.cpp` or a file of its own, and
-  a call from `main.cpp` inside the `#ifdef`.
+- Something that needs apps → `tests/test_apps.cpp` or a file of its own, its
+  entry point declared in `tests/tests.h`, and a call from `system_loop()` in
+  `src/system.cpp` inside the `#ifdef`.
 - The harness - `pump`, `press`, `tap`, `wait_gone`, `count_colour`, `log_has`
   - is in `tests/harness.h`.
 
@@ -129,14 +130,27 @@ app that never yields.
 ## Where the layers are
 
 ```
-src/kernel/   scheduler, context switch, allocator, mailbox, locks, the park
+components/smartos/   the kernel and what it stands on, as its own component
+  kernel/     scheduler, context switch, allocator, mailbox, locks, the park
+  arch/xtensa/  the vector table, the context switch, the atomics
+  port/       this chip: core 1, the park interrupt, the console, the heap
+include/      smartos.h (kernel), smartos_app.h (apps), smartos_config.h
 src/os/       event bus, app model, files, settings, log, shell, screen, radio
 src/gfx/      framebuffer, damage tracking, font, pictures
-src/s3hal/    the board itself: panel, buttons, console
+src/board/    the board itself: panel, buttons, console
 src/ui/       what every app's screen is made of
 src/apps/     the apps
 src/tests/    every claim in the README, as code
+examples/     kernel_blink/, a separate project on the kernel alone
 tools/        the host side: shell driver, screenshots, image and font tools
+```
+
+Two checks worth running before a commit, both of which have already caught
+things nobody was looking for:
+
+```
+python tools/boot_check.py      the board's self-tests, counted and named
+python tools/check_links.py     every link in the documents points at a file
 ```
 
 The README is the long version: each stage says what was built, what it

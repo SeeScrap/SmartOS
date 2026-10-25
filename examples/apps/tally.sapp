@@ -1,0 +1,89 @@
+; An installed app: a tally that goes up when you press a button.
+;
+; This file is the whole app. It is built on a computer with
+;
+;     python tools/mkapp.py examples/apps/tally.sapp tally.app
+;     python tools/install_app.py tally.app
+;
+; and from then on it is in Home, beside the apps that were compiled into the
+; firmware, and the user opens it the same way. The operating system was not
+; rebuilt and was not reflashed.
+;
+; แอปทั้งตัวอยู่ในไฟล์นี้ สร้างบนคอมพิวเตอร์แล้วติดตั้งผ่านสาย USB จากนั้นมัน
+; จะอยู่ในหน้า Home ข้างๆ แอปที่คอมไพล์มากับเฟิร์มแวร์ โดยไม่ต้องบิลด์ OS ใหม่
+
+.name    tally
+.order   100
+.globals 8          ; 0..3 belong to the system; 4 is ours
+.stack   32
+
+.str  title   "Tally"
+.str  line    "pressed %d times"
+.str  hint    "any button counts up"
+
+; Colours as RGB565, because `push` carries one signed byte and a colour
+; component does not fit in it. Building them with sys rgb would work and
+; costs three pushes and a call for something that never changes.
+.const cyan  0x56BF      ; 80, 200, 255
+.const grey  0x5AEB      ; 90, 90, 90
+.const white 0xFFFF
+.const black 0x0000
+
+; --- draw ------------------------------------------------------------------
+; globals[0] is 1 when the screen was just cleared for us, so the title and
+; the hint are drawn only then; the number is redrawn every time.
+.draw
+    ldg 0
+    jz  numbers
+
+    push 8
+    push 6
+    str  title
+    pushk #cyan
+    push 2
+    sys  text 5
+    drop
+
+    push 8
+    push 100
+    str  hint
+    pushk #grey
+    push 1
+    sys  text 5
+    drop
+
+numbers:
+    push 8
+    push 50
+    str  line
+    ldg  4
+    push 0
+    push 0
+    sys  fmt 4              ; "pressed N times" into a scratch buffer
+    pushk #white
+    pushk #black
+    push 1
+    sys  text_bg 6          ; text_bg repaints the cell, so the old number goes
+    drop
+    push 0
+    ret
+
+; --- an event ---------------------------------------------------------------
+; globals[1] is the kind of event and globals[2] its first field. Input is
+; type 0, and 1 means a press rather than a release or a repeat.
+.event
+    ldg 1
+    jnz done                ; not an input event
+    ldg 2
+    push 1
+    ne
+    jnz done                ; not a press
+    ldg 4
+    push 1
+    add
+    stg 4
+    sys invalidate 0        ; ask for draw() to be called
+    drop
+done:
+    push 0
+    ret

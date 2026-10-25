@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 3.2 - the framebuffer everything draws into.
 //
@@ -52,10 +54,7 @@ typedef struct {
     int16_t x, y, w, h;
 } fb_rect_t;
 
-// How many separate damaged regions are tracked before they start being merged
-// together. Small on purpose: the list is walked on every draw call, and beyond
-// a handful of rectangles the walk costs more than the transfers saved.
-#define FB_DAMAGE_MAX 8
+// FB_DAMAGE_MAX is in smartos_config.h, section 16.
 
 typedef struct {
     uint16_t *px;       // w*h pixels, wire order

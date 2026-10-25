@@ -14,7 +14,7 @@
 // now, one file per area, and this is what they share.
 //
 // The default build carries only what runs on every boot - the case printers
-// and the pump. The suites that open apps are inside `#ifdef S3_TEST_APPS` in
+// and the pump. The suites that open apps are inside `#ifdef SMARTOS_TEST_APPS` in
 // their own files, so they cost the default firmware nothing.
 //
 // BUTTONS, WITHOUT HANDS
@@ -22,6 +22,14 @@
 // press() and tap() publish the same EV_INPUT events the button sampler does,
 // so the app manager and the apps cannot tell them from a finger - and the
 // timing is exact, which a finger never is.
+//
+// ทุกอย่างที่เฟิร์มแวร์นี้อ้าง ถูกตรวจบนบอร์ดตอนบูต และจนถึง stage นี้มันเคยอยู่ใน
+// main.cpp ทั้งหมด ซึ่งบวมเป็น 3,900 บรรทัดของลำดับบูตปนกับสคริปต์ทดสอบ
+// ตอนนี้ชุดทดสอบอยู่ใน src/tests/ ไฟล์ละเรื่อง และไฟล์นี้คือของที่ใช้ร่วมกัน
+//
+// **ปุ่ม โดยไม่ต้องมีมือ** press() กับ tap() ส่งเหตุการณ์ EV_INPUT ชุดเดียวกับที่
+// ตัวอ่านปุ่มส่ง ตัวจัดการแอปและแอปจึงแยกไม่ออกจากนิ้วจริง และจังหวะเวลาเป๊ะ
+// ซึ่งนิ้วจริงไม่มีวันทำได้
 // ---------------------------------------------------------------------------
 
 // One line of result: what was checked, what was seen, OK or FAIL.

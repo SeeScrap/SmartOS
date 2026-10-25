@@ -1,6 +1,8 @@
 #pragma once
 #include "gfx/fb.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // Stage 3.5 - text.
 //
@@ -24,15 +26,19 @@
 // place leaves nothing of the previous one behind - the normal case for a
 // status line or a counter. fb_text() paints ink only, for text over a picture;
 // changing it means redrawing whatever was underneath first.
+//
+// ฟอนต์บิตแมป 5x8 วาดในช่อง 6x10 ขยายด้วยจำนวนเต็ม ที่ scale 1 ได้ 53 คอลัมน์
+// 24 บรรทัดบนจอ 320x240 ตัวอักษรอยู่ใน tools/font5x8.txt เป็นรูป แล้วถูกคอมไพล์
+// เป็น font5x8.h ด้วย tools/gen_font.py — แก้ที่รูป ห้ามแก้ที่เฮดเดอร์
+//
+// **หนึ่ง damage region ต่อการเรียกหนึ่งครั้ง** ข้อความเขียนพิกเซลตรงๆ ไม่ผ่าน
+// fb_pixel() และนี่คือการตัดสินใจเชิงออกแบบ ไม่ใช่การปรับแต่ง เพราะ fb_pixel()
+// ทำเครื่องหมาย damage ทีละพิกเซล สตริงสี่สิบตัวอักษรจะกลายเป็นสี่เหลี่ยมขนาด
+// หนึ่งพิกเซลราวสองพันสี่ร้อยอัน
 // ---------------------------------------------------------------------------
 
-#define TEXT_CELL_W 6
-#define TEXT_CELL_H 10
-
-// Largest scale drawn; anything above is drawn at this. 8 is a 48x80 cell,
-// a third of the screen's height per line, which is already past any use.
-// The limit exists because a scaled row is expanded into a buffer on the stack.
-#define TEXT_MAX_SCALE 8
+// TEXT_CELL_W, TEXT_CELL_H and TEXT_MAX_SCALE are in smartos_config.h,
+// section 16.
 
 // Both return the x just past the last character drawn, so calls can be
 // chained along a line. '\n' returns to the starting x one line down.

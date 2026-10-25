@@ -4,6 +4,8 @@
 
 #include "os/app.h"
 
+#include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
 // The apps that ship with the system. Each is an app_t and nothing else - no
 // task, no queue, no drawing surface of its own; the runtime in os/app.cpp
@@ -13,6 +15,11 @@
 //
 // The peek functions exist for the stage 4.3b test script, which drives these
 // apps with injected button events and needs to see what they made of them.
+//
+// แอปที่มากับระบบ แต่ละตัวเป็น app_t เท่านั้น ไม่มี task ไม่มีคิว ไม่มีพื้นที่วาด
+// ของตัวเอง — ตัวรันใน os/app.cpp จัดให้ทั้งสามอย่าง แต่ละไฟล์ลงทะเบียนตัวเอง
+// ด้วย APP_REGISTER เฮดเดอร์นี้จึงจำเป็นเฉพาะกับโค้ดที่อ้างถึงแอปตัวใดตัวหนึ่ง
+// ด้วยชื่อ ซึ่งก็คือสคริปต์ทดสอบ **แอปใหม่ไม่ต้องมาเพิ่มในไฟล์นี้**
 // ---------------------------------------------------------------------------
 
 extern const app_t app_input;     // stage 3.6's button screen, now an app
@@ -42,8 +49,8 @@ int      app_kt_timers_got(void);
 int      app_kt_timers_refused(void);
 uint32_t app_kt_timer_ticks(void);
 
-// Stage 5.4d, -D S3_TEST_FSFULL only: writes until the filesystem is full.
-#ifdef S3_TEST_FSFULL
+// Stage 5.4d, -D SMARTOS_TEST_FSFULL only: writes until the filesystem is full.
+#ifdef SMARTOS_TEST_FSFULL
 extern const app_t app_kt_filler;
 int      app_kt_fill_rc(void);        // what the write that found the end returned
 int      app_kt_fill_small_rc(void);  // one byte, with no room left
@@ -74,8 +81,7 @@ extern const app_t app_notes;
 const char *app_notes_text(const app_ctx_t *c);
 const char *app_notes_message(const app_ctx_t *c);
 
-// What app_fstest found, for the test script on core 0 to print.
-#define FSCHECK_MAX 12
+// FSCHECK_MAX is in smartos_config.h, section 18.
 typedef struct {
     const char *what;
     bool        ok;

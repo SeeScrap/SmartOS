@@ -1,0 +1,74 @@
+overlapping
+edge to edge
+opposite corners
+box outline, 4 sides
+12 into 8 slots
+43 chars, scale 1
+off the right edge
+clean press and release
+contact bounce, 5 edges/10 ms
+8 ms glitch
+held for 1000 ms
+two buttons, one sample
+one bouncing, one clean
+40 events into 32 slots
+fan-out by type mask
+targeted send
+one full subscriber
+unsubscribe
+timers go with subscriber
+subscriber table full
+k_snprintf
+fb_line diagonal
+fb_line slope and clip
+fb_circle / fb_fill_circle
+k_rand
+pin rules
+ADC pins
+registry
+headers are skipped
+the ends wrap
+scrolls to the chosen row
+a row that half fits is not
+scrolling clamps
+the bar clamps
+two presses, same subject
+it types what it points at
+held arrows move, held OK do
+the edges wrap
+shift
+delete, and a line that is f
+flash reads, parked
+the kernel clock held
+log write, parked
+boot recorded
+settings applied
+boot screen
+boot starts no app
+kernel memory
+arithmetic
+the constant pool
+a loop
+a function call
+a system call
+an instruction it lacks
+reading past its own memory
+jumping out of the program
+taking from an empty stack
+filling the stack
+dividing by zero
+looping for ever
+a system call that does not
+recursing without end
+the system call table
+formatting a string
+drawing when there is no scr
+a string that is not its own
+a call with the wrong argume
+how fast it runs
+an app arrives as a file
+it loads and registers
+it opens, draws and hears a
+it uninstalls cleanly
+rubbish is refused
+another ABI is refused

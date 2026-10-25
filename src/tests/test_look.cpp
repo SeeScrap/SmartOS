@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -15,9 +15,9 @@
 #include "os/settings.h"
 #include "ui/keyboard.h"
 #include <unistd.h>
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 
@@ -72,7 +72,7 @@ void sys62_wallpaper_test(void)
     const int on = wallpaper_px();
     snprintf(d, sizeof(d), "%dx%d in flash (%d B); %d of %d px on the panel are the picture",
              g_wallpaper.w, g_wallpaper.h, all * 2, on, all);
-    sdk_case("Home shows the picture", g_wallpaper.w == 320 && g_wallpaper.h == APP_AREA_H &&
+    sdk_case("Home shows the picture", g_wallpaper.w == LCD_WIDTH && g_wallpaper.h == APP_AREA_H &&
              on > all * 6 / 10, d);
 
     // Off: the same screen, drawn on the flat colour, with no pixel of the
@@ -95,7 +95,7 @@ void sys62_wallpaper_test(void)
     // at a time; the blend is what a selected row over it costs.
     {
         fb_t scratch;
-        if (fb_init(&scratch, 320, 216)) {
+        if (fb_init(&scratch, LCD_WIDTH, APP_AREA_H)) {
             const int64_t t0 = esp_timer_get_time();
             for (int i = 0; i < 20; ++i) image_blit(&scratch, &g_wallpaper, 0, 0);
             const int64_t t1 = esp_timer_get_time();
@@ -173,4 +173,4 @@ void sys64_keyboard_test(void)
     wait_gone(id2, 2000);
 }
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

@@ -16,10 +16,7 @@
 
 #include <string.h>
 
-#include "kernel/ktime.h"
-#include "os/fs.h"
-#include "os/kfmt.h"
-#include "os/syslog.h"
+#include "smartos_app.h"
 
 static volatile uint32_t s_spins, s_draw_spins, s_sleeps, s_reads;
 
@@ -213,13 +210,13 @@ int      app_kt_timers_got(void)     { return s_timers_got; }
 int      app_kt_timers_refused(void) { return s_timers_refused; }
 uint32_t app_kt_timer_ticks(void)    { return s_timer_ticks; }
 
-// --- filler (stage 5.4d, -D S3_TEST_FSFULL) ------------------------------------------
+// --- filler (stage 5.4d, -D SMARTOS_TEST_FSFULL) ------------------------------------------
 // Writes until LittleFS says no, to see what a full filesystem does to a board
 // that has to keep running: whether the error comes back or something crashes,
 // what happens to the system log while there is no room for it, and whether
 // deleting really gives the space back. It writes about 12 MB and takes
 // minutes, so it is a build of its own - not part of the app tests.
-#ifdef S3_TEST_FSFULL
+#ifdef SMARTOS_TEST_FSFULL
 #define FILL_MAX 400                       // 32 KB each: more than the 12 MB there is
 static volatile int      s_fill_rc = 99, s_fill_small_rc = 99, s_fill_files;
 static volatile uint32_t s_fill_kb, s_fill_used_after, s_fill_total, s_fill_ms;
@@ -291,4 +288,4 @@ uint32_t app_kt_fill_used(void)     { return s_fill_used_after; }
 uint32_t app_kt_fill_total(void)    { return s_fill_total; }
 uint32_t app_kt_fill_ms(void)       { return s_fill_ms; }
 bool     app_kt_fill_done(void)     { return s_fill_done; }
-#endif // S3_TEST_FSFULL
+#endif // SMARTOS_TEST_FSFULL

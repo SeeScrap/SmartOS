@@ -6,16 +6,16 @@
 #include "esp_timer.h"
 
 #include "apps/apps.h"
-#include "board/pins.h"
+#include "board/devkitc_n16r8.h"
 #include "gfx/fb.h"
 #include "os/app.h"
 #include "os/dev.h"
 #include "os/evbus.h"
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 #include "os/krand.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 
@@ -24,7 +24,7 @@
 //
 // The rules an app can be held to without running one - those run every boot -
 // and then the same rules with apps actually on core 1, which needs
-// -D S3_TEST_APPS.
+// -D SMARTOS_TEST_APPS.
 // ---------------------------------------------------------------------------
 
 // Stage 6.1: its own framebuffer, not the panel's. These checks count pixels
@@ -43,7 +43,7 @@ void sdk_logic_test(void)
     char d[160], b[96];
     int  r;
 
-    if (!fb_init(&s_fb, 320, 240)) {
+    if (!fb_init(&s_fb, LCD_WIDTH, LCD_HEIGHT)) {
         sdk_case("a framebuffer to check in", false, "no room for a 320x240 buffer");
         return;
     }
@@ -158,7 +158,7 @@ void sdk_logic_test(void)
 
 
 // The live half opens apps, so it belongs to the app build.
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 // The same SDK with the kernel running: a real ADC pin read by the scope app,
 // the game playing itself into a wall, and a stream that ends with its app.
@@ -236,4 +236,4 @@ void sdk_live_test(void)
 
 }
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

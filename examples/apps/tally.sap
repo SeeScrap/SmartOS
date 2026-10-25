@@ -1,0 +1,41 @@
+# A tally that goes up when you press a button.
+#
+# The same app as tally.sapp, written in the language instead of the
+# assembly it compiles to:
+#
+#     python tools/sappc.py examples/apps/tally.sap tally.app
+#     python tools/install_app.py tally.app
+#
+# and from then on it is in Home, beside the apps compiled into the firmware.
+# The operating system is not rebuilt and not reflashed.
+#
+# แอปตัวเดียวกับ tally.sapp แต่เขียนด้วยภาษา แทนที่จะเป็นแอสเซมบลีที่มันคอมไพล์ไปเป็น
+
+app tally {
+    order 100
+
+    var count
+    var cyan  = 0x56BF          # 80, 200, 255
+    var grey  = 0x5AEB
+    var white = 0xFFFF
+
+    on draw {
+        # `full` is the system's: true when the screen was just cleared for
+        # us, so the parts that never change are drawn only then.
+        if (full) {
+            text(8, 6, "Tally", cyan, 2)
+            text(8, 100, "any button counts up", grey, 1)
+        }
+        # text_bg repaints the whole cell, so the old number goes with it.
+        text_bg(8, 50, fmt("pressed %d times", count), white, 0, 1)
+    }
+
+    on event {
+        # ev_type 0 is input, and ev_a 1 is a press rather than a release
+        # or a repeat. Both are the system's, filled in before this runs.
+        if (ev_type == 0 && ev_a == 1) {
+            count = count + 1
+            invalidate()
+        }
+    }
+}

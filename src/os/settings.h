@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "os/app.h"
 
 // ---------------------------------------------------------------------------
@@ -22,11 +24,16 @@
 // app_setting_get / app_setting_set read and replace the file "settings"
 // there. Each set is a flash write, so an app sets a value when it matters -
 // when the user commits to a choice - not on every keypress.
+//
+// ค่าของระบบคือจำนวนเต็มที่มีชื่อ มีค่าตั้งต้นและมีช่วงที่ยอมรับ เก็บใน
+// /fs/sys/settings เป็นบรรทัด "key=value" ธรรมดา เปิดอ่านด้วยตาได้ ตารางอยู่ใน
+// DRAM การอ่านจึงเป็นแค่การค้นกับโหลด ปลอดภัยจากทั้งสองคอร์ ไม่ต้องผ่าน mailbox
+//
+// การเปลี่ยนค่าไปทางคอร์ 0 ซึ่งเป็นเจ้าของทั้งไฟล์และสิ่งที่ค่านั้นควบคุม
+// ผลมีทันที แต่เขียนลงแฟลชต่อเมื่อค่าถูกปล่อยนิ่งครบ SETTINGS_SAVE_MS
+// การลากความสว่างจาก 100 ลง 10 จึงเป็นการเขียนแฟลชครั้งเดียว ไม่ใช่สิบครั้ง
 // ---------------------------------------------------------------------------
 
-#define SETTINGS_MAX      16
-#define SETTINGS_KEY_MAX  15
-#define SETTINGS_SAVE_MS  1000
 
 typedef void (*settings_hook_t)(int32_t value);
 

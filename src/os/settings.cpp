@@ -10,7 +10,7 @@
 #include "kernel/kmbox.h"
 #include "os/evbus.h"
 #include "os/fs.h"
-#include "os/kfmt.h"
+#include "kernel/kfmt.h"
 #include "os/syslog.h"
 
 #define SETTINGS_PATH "/fs/sys/settings"

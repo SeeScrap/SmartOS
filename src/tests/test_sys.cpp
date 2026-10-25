@@ -2,11 +2,11 @@
 // log (4.5), killing apps (5.2), CPU accounting and the task manager (5.3),
 // minimising (5.5), and the launcher's polish (5.4).
 //
-// Only built with -D S3_TEST_APPS: everything here opens apps.
+// Only built with -D SMARTOS_TEST_APPS: everything here opens apps.
 
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +19,8 @@
 #include "gfx/text.h"
 #include "kernel/kheap.h"
 #include "kernel/kmbox.h"
-#include "kernel/kpark.h"
+#include "port/kpark.h"
+#include "kernel/internal/ktask_internal.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
 #include "os/app.h"
@@ -28,10 +29,10 @@
 #include "os/screen.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/lcd_panel.h"
-#include "s3hal/log.h"
+#include "port/kport.h"
+#include "board/input.h"
+#include "board/lcd_panel.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 
@@ -77,7 +78,7 @@ void sys45_live_test(void)
     snprintf(d, sizeof(d), "%ld %%, duty %lu; saves %lu at 0.3 s, %lu at 1.6 s; file: %s",
              (long)dimmed, (unsigned long)duty, (unsigned long)saves_soon,
              (unsigned long)saves_later, on_flash ? "backlight=70" : "NOT updated");
-    sdk_case("brightness via the app", dimmed == 70 && duty == 70u * 1023u / 100u &&
+    sdk_case("brightness via the app", dimmed == 70 && duty == 70u * LCD_BACKLIGHT_MAX_DUTY / 100u &&
              saves_soon == 0 && saves_later == 1 && on_flash, d);
     press(3, INPUT_PRESS);                                // RIGHT x3: back to 100
     press(3, INPUT_PRESS);
@@ -357,12 +358,12 @@ void sys52_kill_test(void)
         const int id = app_start(&app_kt_mboxer);
         pump(300);
         const uint32_t r0 = app_kt_reads();
-        hal_delay_ms(20);                                // no service: the call waits
+        kport_yield_ms(20);                                // no service: the call waits
         const app_ctx_t *c = app_get(id);
         const char *was = task_state_name(c ? c->task : -1);
         const uint32_t served0 = kmbox_served_count();
         const int r = app_kill(id);
-        hal_delay_ms(3);                                 // a tick or two: switched out
+        kport_yield_ms(3);                                 // a tick or two: switched out
         app_poll();
         const int ms = wait_gone(id, 500);
         uint32_t fc = 0, fp = 0, fd = 0;
@@ -447,7 +448,7 @@ static void measure(window_t *w, uint32_t ms, bool flash)
             next_write += 100000;
         }
         system_pass();
-        hal_delay_ms(1);
+        kport_yield_ms(1);
     }
 
     k_cpu_time(1, &b);
@@ -460,7 +461,7 @@ static void measure(window_t *w, uint32_t ms, bool flash)
     w->busy = b.busy - a.busy;
     w->idle = b.idle - a.idle;
     w->park = b.park - a.park;
-    w->wall_cycles = (uint64_t)(t1 - t0) * 240;
+    w->wall_cycles = (uint64_t)(t1 - t0) * K_CPU_MHZ;
     if (flash) unlink("/fs/sys/.acct_test");
 }
 
@@ -950,7 +951,7 @@ void sys54_polish_test(void)
                  off_ms, (unsigned long)duty_off, (unsigned long)duty_on, (long)v0, (long)v_wake,
                  (long)v_after);
         sdk_case("screen off, and the press that wakes it", screen_offs() == offs0 + 1 &&
-                 off_ms >= 1900 && off_ms <= 2600 && duty_off == 0 && duty_on == 1023 &&
+                 off_ms >= 1900 && off_ms <= 2600 && duty_off == 0 && duty_on == LCD_BACKLIGHT_MAX_DUTY &&
                  v_wake == v0 && v_after == v0 + 1, d);
 
         settings_set("screenoff", 0);               // off again for the rest
@@ -970,4 +971,4 @@ void sys54_polish_test(void)
     (void)home;
 }
 
-#endif   // S3_TEST_APPS
+#endif   // SMARTOS_TEST_APPS

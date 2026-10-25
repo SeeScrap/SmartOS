@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "smartos_config.h"
+
 #include "os/app.h"
 
 // ---------------------------------------------------------------------------
@@ -37,14 +39,13 @@
 // lines from kernel tasks and apps share a budget: SYSLOG_BURST at once,
 // refilled at SYSLOG_RATE a second. Past it they are dropped and counted, and
 // the next line that gets through says how many went missing. System code on core 0 is trusted and not limited.
+//
+// คอนโซลอนุกรมลืมทุกอย่างทันทีที่ไม่มีใครดู และการพังตอนกลางคืนไม่เหลืออะไรไว้เลย
+// เหตุการณ์ที่สำคัญ - การบูตแต่ละครั้งและสาเหตุที่ครั้งก่อนจบ, fault ของคอร์ 1,
+// แอปที่เปิดและปิด - จึงถูกเขียนลง /fs/sys/log.txt ด้วย บรรทัดละเหตุการณ์
+// พร้อมหมายเลขบูต วินาทีนับจากบูต ใครเขียน และเกิดอะไรขึ้น
 // ---------------------------------------------------------------------------
 
-#define SYSLOG_MAX     (32 * 1024)
-#define SYSLOG_LINE    120
-#define SYSLOG_RATE    20              // lines a second, sustained
-#define SYSLOG_BURST   40
-#define SYSLOG_BUF     2048            // lines wait in RAM, at most this many bytes
-#define SYSLOG_FLUSH_MS 2000           // ...for at most this long (see syslog.cpp)
 
 // --- core 0, FreeRTOS context ------------------------------------------------------
 void     slog_init(uint32_t boot);     // after fs_init; boot is this boot's number
