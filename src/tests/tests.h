@@ -59,3 +59,14 @@ void kernel_smp_demo_start(void);
 #ifdef S3_PREEMPT_SOAK
 void kernel_soak_start(void);
 #endif
+
+// The stress builds (tests/test_kernel_stress.cpp), started by core1_main.
+#ifdef S3_TEST_SLEEP_CLAIM
+void kernel_claim_start(void);
+#endif
+#ifdef S3_TEST_MBOX_STRESS
+void kernel_mbox_stress_start(void);
+#endif
+#ifdef S3_TEST_EVBUS
+void kernel_evbus_stress_start(void);
+#endif
