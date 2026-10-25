@@ -31,7 +31,7 @@ column is there so the number that was wrong is in the report.
 
 An ESP32-S3-DevKitC-1 **N16R8** (16 MB flash, 8 MB octal PSRAM), a 2.4"
 240x320 SPI panel with an ST7789V, and six buttons. Wiring is in
-[src/board/pins.h](src/board/pins.h); the panel's pins are chosen to land on
+[src/board/pins.h](src/board/devkitc_n16r8.h); the panel's pins are chosen to land on
 the FSPI IOMUX pads, which is what allows 80 MHz.
 
 **Buttons: one side to the GPIO, the other to GND.** Nothing else - the chip's
@@ -143,6 +143,14 @@ src/apps/     the apps
 src/tests/    every claim in the README, as code
 examples/     kernel_blink/, a separate project on the kernel alone
 tools/        the host side: shell driver, screenshots, image and font tools
+```
+
+Two checks worth running before a commit, both of which have already caught
+things nobody was looking for:
+
+```
+python tools/boot_check.py      the board's self-tests, counted and named
+python tools/check_links.py     every link in the documents points at a file
 ```
 
 The README is the long version: each stage says what was built, what it

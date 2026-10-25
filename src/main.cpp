@@ -101,6 +101,43 @@ static const char *reset_reason_name(void)
     return why;
 }
 
+// What was actually compiled in.
+//
+// Every number here comes from include/smartos_config.h, and that is the
+// point: a board in front of you can be asked what it was built with, rather
+// than being assumed to match whatever the source tree says today. It is four
+// lines, and it has already saved reading a build log more than once.
+//
+// ตัวเลขทุกตัวมาจาก include/smartos_config.h ซึ่งคือประเด็น: ถามบอร์ดที่อยู่
+// ตรงหน้าได้เลยว่าถูกสร้างมาด้วยค่าอะไร ไม่ต้องเดาว่าตรงกับซอร์สวันนี้ไหม
+static void report_config(void)
+{
+    logf("kernel    : %d tasks, %d B stacks (+%d guard), tick %d Hz, ABI %d\n",
+         K_MAX_TASKS, K_STACK_SIZE, K_STACK_GUARD, K_TICK_HZ, SMARTOS_ABI_VERSION);
+    logf("pools     : %u KB internal (min %u), %u KB PSRAM, %u KB per app\n",
+         (unsigned)(KHEAP_INTERNAL_SIZE / 1024), (unsigned)(KHEAP_INTERNAL_MIN / 1024),
+         (unsigned)(KHEAP_PSRAM_SIZE / 1024), (unsigned)(APP_KERNEL_MAX / 1024));
+    logf("screen    : %dx%d at %u MHz, %d apps, %d bus slots\n",
+         LCD_WIDTH, LCD_HEIGHT, (unsigned)(LCD_SPI_HZ / 1000000), APP_MAX, EVBUS_MAX_SUBS);
+    logf("built with:"
+#ifdef SMARTOS_ENABLE_PREEMPT
+         " preempt"
+#endif
+#ifdef SMARTOS_ENABLE_SMP
+         " smp"
+#endif
+#ifdef SMARTOS_TEST_APPS
+         " test-apps"
+#endif
+#ifdef SMARTOS_TEST_PARK
+         " test-park"
+#endif
+#ifdef SMARTOS_GFX_SELFTEST
+         " gfx-selftest"
+#endif
+         "\n");
+}
+
 static void report_memory(void)
 {
     esp_chip_info_t info;
@@ -129,6 +166,8 @@ static void report_memory(void)
     // are the first things to misbehave when they are underfed.
     const char *why = reset_reason_name();
     logf("reset cause: %s\n", why);
+
+    report_config();
 
     logf("running on: core %d\n", (int)xPortGetCoreID());
 #if CONFIG_FREERTOS_UNICORE

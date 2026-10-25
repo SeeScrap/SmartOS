@@ -1,8 +1,13 @@
-# Project S3
+# SmartOS
 
 *[อ่านฉบับภาษาไทย](README.th.md)*
 
 A custom OS for the ESP32-S3, built from the kernel upwards.
+
+> The stage-by-stage record below was written while this was called Project
+> S3, and it still says so in places. The code was renamed in one go late on
+> (see `R3` in the history); the record was left as it was written, because
+> rewriting it would make it a worse record.
 
 The kernel does not sit on top of FreeRTOS - it owns core 1 outright. IDF is
 built unicore, so FreeRTOS never starts the second core, and the kernel takes
@@ -12,7 +17,7 @@ handed to it over a mailbox.
 
 ```
  CORE 0                          CORE 1
- IDF + FreeRTOS                  S3-OS
+ IDF + FreeRTOS                  SmartOS
   - USB console                   - vector table   (kvectors.S)
   - flash / PSRAM                 - CCOMPARE0 tick (ktime.cpp)
   - mailbox worker                - scheduler      (ksched.cpp)
@@ -32,7 +37,7 @@ handed to it over a mailbox.
 | Note | the module's SDO never reaches the controller, so the panel cannot be identified by reading it - `-D LCD_FORCE_CTRL` names it instead |
 | Input | 6 buttons to GND, read with internal pull-ups |
 
-Wiring lives in [src/board/pins.h](src/board/pins.h). **GPIO 26-37 are off limits**
+Wiring lives in [src/board/pins.h](src/board/devkitc_n16r8.h). **GPIO 26-37 are off limits**
 on this module - they belong to the octal flash and PSRAM.
 
 **The buttons are two wires each**: one side to the GPIO, the other to GND,
@@ -90,6 +95,56 @@ docs/prototype_arduino/   where this started, before stage 2.0 moved it off
 Two files are generated and committed because the build needs them:
 `src/gfx/wallpaper_data.cpp` (from `docs/art/`, by `tools/mkimage.py`) and
 `src/gfx/font5x8.h` (from `tools/font5x8.txt`, by `tools/gen_font.py`).
+
+## Writing for SmartOS
+
+Two different jobs, and the system now makes the difference explicit. There is
+a worked example of each in **[examples/](examples/)**.
+
+| | a program on the kernel | an app on the OS |
+|---|---|---|
+| include | `smartos.h` | `smartos_app.h` |
+| you get | tasks, mutexes, semaphores, queues, the clock, the heap, `klog` | all of that, plus the screen, events, files, settings, the log, the toolkit, the buttons |
+| lives in | its own project, pointed at `components/smartos` | one file dropped in `src/apps/` |
+| started by | its own `app_main` | the user, from Home |
+| example | [examples/kernel_blink/](examples/kernel_blink/) — 175 KB of flash, 17 KB of RAM | [src/apps/app_hello.cpp](src/apps/app_hello.cpp) — copy it |
+
+`examples/kernel_blink` is a separate PlatformIO project that builds against
+the kernel component and three ESP-IDF components, with no part of the
+operating system in it at all. That it links and runs is the reason the layers
+are arranged the way they are.
+
+Every setting the system has is one file, **[include/smartos_config.h](include/smartos_config.h)**:
+eighteen sections, every entry wrapped in `#ifndef` so a project can override
+it from `build_flags` without editing the file, and every number that was
+chosen by measurement carries the measurement with it. A running board will
+tell you what it was built with - the first four lines after the hardware are
+the configuration it actually has.
+
+## Porting it
+
+The parts that would change are separated, and the separation is enforced by
+the build rather than asserted here:
+
+| | holds | replaced when |
+|---|---|---|
+| `components/smartos/kernel/` | scheduler, locks, heap, clock, mailbox, faults | never - it has no ESP-IDF or chip headers at all |
+| `components/smartos/arch/xtensa/` | vector table, context switch, compare-and-swap, interrupt mask | moving to a different instruction set |
+| `components/smartos/port/` | starting core 1, the inter-processor interrupt, the console, the heap carve | moving to a different chip |
+
+The component's `REQUIRES` list in
+[components/smartos/CMakeLists.txt](components/smartos/CMakeLists.txt) is the
+dependency claim, and CMake enforces it: seven ESP-IDF components, all of them
+reached from `port/`. A kernel file that reaches for anything else stops the
+build.
+
+What a port has to provide is the handful of functions in
+[components/smartos/port/kport.h](components/smartos/port/kport.h) - placing
+code in RAM, a console, a microsecond delay, the core id, an inter-processor
+interrupt, and a one-off heap carve at boot - plus starting the second core.
+It is deliberately inline functions and link-time symbols rather than a table
+of function pointers: the context switch and the spinlocks are measured in
+instructions, so everything on those paths has to resolve at compile time.
 
 ## Build
 
@@ -221,7 +276,7 @@ through it:
 Under the cooperative scheduler the same demo printed nothing from the ticker
 until tick 202, after the hog had finished. Three runs back to back, no faults.
 
-The interrupt entry ([kernel/kvectors.S](components/smartos/kernel/kvectors.S)) leaves
+The interrupt entry ([kernel/kvectors.S](components/smartos/arch/xtensa/kvectors.S)) leaves
 exception mode, saves all sixteen address registers plus SAR and the loop
 registers, and calls C on the interrupted task's own stack. That last choice is
 what makes it simple: `k_yield()` from inside the interrupt is an ordinary call,
@@ -3222,6 +3277,6 @@ core 1    : asleep, never started by IDF
 ```
 
 If it stops before `[core1] alive`, the wake sequence in
-[kernel/kcore1.cpp](components/smartos/kernel/kcore1.cpp) is where to look. If it stops later,
+[kernel/kcore1.cpp](components/smartos/port/kcore1.cpp) is where to look. If it stops later,
 core 1 has faulted and core 0 prints a decoded report - to check that path
 itself works, build with `-D SMARTOS_TEST_CORE1_FAULT`.
