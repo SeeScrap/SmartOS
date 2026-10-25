@@ -1,6 +1,4 @@
 #pragma once
-#include "esp_rom_sys.h"
-
 #include "kernel/kspin.h"
 #include "kernel/ktime.h"
 
@@ -39,7 +37,7 @@
     do {                                              \
         k_preempt_hold();                             \
         bool _kl = k_spin_lock(&k_console_lock);     \
-        esp_rom_printf(__VA_ARGS__);                  \
+        kport_rom_printf(__VA_ARGS__);                \
         if (_kl) k_spin_unlock(&k_console_lock);     \
         k_preempt_release();                          \
     } while (0)

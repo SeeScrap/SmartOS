@@ -1,6 +1,6 @@
 #include "kernel/kfault.h"
 
-#include "s3hal/log.h"
+#include "port/kport.h"
 
 // Xtensa EXCCAUSE values. Only the ones a kernel realistically trips over are
 // spelled out; anything else is reported by number.
@@ -66,34 +66,34 @@ void kfault_report(void)
     k_fault_frame.pending = 0;
     s_reported++;
 
-    logln();
-    logln("################ CORE 1 FAULT ################");
-    logf("cause    : %lu (%s)\n", (unsigned long)f.exccause,
+    kport_println("");
+    kport_println("################ CORE 1 FAULT ################");
+    kport_printf("cause    : %lu (%s)\n", (unsigned long)f.exccause,
          kfault_cause_name(f.exccause));
-    logf("PC       : 0x%08lx   <- the instruction that faulted\n",
+    kport_printf("PC       : 0x%08lx   <- the instruction that faulted\n",
          (unsigned long)f.pc);
-    logf("EXCVADDR : 0x%08lx   <- address it was touching\n",
+    kport_printf("EXCVADDR : 0x%08lx   <- address it was touching\n",
          (unsigned long)f.excvaddr);
-    logf("PS       : 0x%08lx   (INTLEVEL %lu, EXCM %lu, UM %lu, WOE %lu)\n",
+    kport_printf("PS       : 0x%08lx   (INTLEVEL %lu, EXCM %lu, UM %lu, WOE %lu)\n",
          (unsigned long)f.ps,
          (unsigned long)(f.ps & 0xF),
          (unsigned long)((f.ps >> 4) & 1),
          (unsigned long)((f.ps >> 5) & 1),
          (unsigned long)((f.ps >> 18) & 1));
-    logf("SP       : 0x%08lx\n", (unsigned long)f.sp);
-    logf("a0       : 0x%08lx   <- return address of the faulting function\n",
+    kport_printf("SP       : 0x%08lx\n", (unsigned long)f.sp);
+    kport_printf("a0       : 0x%08lx   <- return address of the faulting function\n",
          (unsigned long)f.a0);
-    logf("vector   : 0x%08lx   <- which vector caught it\n",
+    kport_printf("vector   : 0x%08lx   <- which vector caught it\n",
          (unsigned long)f.vector);
     if (f.depc) {
-        logf("DEPC     : 0x%08lx   <- DOUBLE fault: this is where the handler\n",
+        kport_printf("DEPC     : 0x%08lx   <- DOUBLE fault: this is where the handler\n",
              (unsigned long)f.depc);
-        logln("                        itself died. PC above is the first fault.");
+        kport_println("                        itself died. PC above is the first fault.");
     }
-    logln();
-    logln("Core 1 is parked in a spin loop. Decode PC and a0 with:");
-    logln("  xtensa-esp32s3-elf-addr2line -pfiaC -e .pio/build/s3-n16r8/firmware.elf <addr>");
-    logln("##############################################");
+    kport_println("");
+    kport_println("Core 1 is parked in a spin loop. Decode PC and a0 with:");
+    kport_println("  xtensa-esp32s3-elf-addr2line -pfiaC -e .pio/build/s3-n16r8/firmware.elf <addr>");
+    kport_println("##############################################");
 
     if (s_sink) {
         s_sink((unsigned)f.exccause, kfault_cause_name(f.exccause), (unsigned)f.pc,

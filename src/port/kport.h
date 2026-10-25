@@ -34,9 +34,11 @@
 // เคอร์เนลนี้วัดกันเป็นจำนวนคำสั่ง ของที่อยู่บนเส้นทางนั้นต้องตัดสินตอนคอมไพล์
 // ---------------------------------------------------------------------------
 
+#include <stdarg.h>
 #include <stdint.h>
 
 #include "esp_attr.h"
+#include "esp_rom_sys.h"
 
 #include "smartos_config.h"
 
@@ -50,3 +52,29 @@
 // the cache off, which is why they are not conditional on anything.
 #define K_IRAM  IRAM_ATTR
 #define K_DRAM  DRAM_ATTR
+
+
+// --- the console ----------------------------------------------------------
+// Two ways to print, because the two cores cannot use the same one.
+//
+// CORE 1 uses kport_rom_printf, through the klog() macro in kernel/klog.h.
+// printf() and the ESP_LOG macros take newlib and FreeRTOS locks that belong
+// to the scheduler on core 0, and core 1 is not a FreeRTOS core at all - it has
+// no task control block, so blocking on one of those would hang the core with
+// nothing printed. The ROM routine pushes characters straight at the console
+// peripheral with no locking, which is why IDF's own ESP_EARLY_LOGx uses it
+// during start-up and on the second core. A macro, not a wrapper: a wrapper
+// would need a va_list variant of a ROM routine, and klog is called from the
+// fault path where fewer moving parts is the whole point.
+//
+// Its format set is the small ROM one: %c %d %u %x %s %p with width and zero
+// padding, and no %f.
+#define kport_rom_printf  esp_rom_printf
+
+// CORE 0 uses these: full newlib formatting, under the same console lock, so a
+// line from core 0 and a line from core 1 cannot interleave. s3hal/log.h's
+// logf() and logln() are these two - it keeps the old names for the hundreds
+// of call sites that use them.
+extern "C" void kport_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+extern "C" void kport_vprintf(const char *fmt, va_list ap);
+extern "C" void kport_println(const char *s);

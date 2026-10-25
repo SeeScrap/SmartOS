@@ -3,14 +3,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#include "kernel/kspin.h"
-
-// The one console, shared by both cores.
-extern "C" {
-    k_spin_t          k_console_lock = 0;
-    k_spin_t          k_sched_lock   = 0;
-    volatile uint32_t k_spin_stuck   = 0;
-}
+#include "port/kport.h"
 
 void log_init(void)
 {
@@ -19,18 +12,15 @@ void log_init(void)
     setvbuf(stdout, NULL, _IONBF, 0);
 }
 
+// logf and logln are kport_printf and kport_println. The names and the
+// header stay because a few hundred call sites use them; the bodies moved to
+// port/kport_esp32s3.cpp in R4b, together with the console lock they take.
 void logf(const char *fmt, ...)
 {
-    bool locked = k_spin_lock(&k_console_lock);
     va_list ap;
     va_start(ap, fmt);
-    vprintf(fmt, ap);
+    kport_vprintf(fmt, ap);
     va_end(ap);
-    if (locked) k_spin_unlock(&k_console_lock);
 }
 
-void logln(const char *s)
-{
-    if (s && *s) fputs(s, stdout);
-    fputs("\n", stdout);
-}
+void logln(const char *s) { kport_println(s); }
