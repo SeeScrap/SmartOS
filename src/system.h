@@ -19,3 +19,6 @@ void  system_pass(void);
 // The whole panel, including the status bar. Apps get a view of the area below
 // it (see app.h), not this.
 fb_t *system_fb(void);
+
+// Core 0's loop, from app_main. Never returns.
+void  system_loop(void);

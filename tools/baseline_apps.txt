@@ -38,8 +38,8 @@ held arrows move, held OK do
 the edges wrap
 shift
 delete, and a line that is f
-# reads ok, # failed, # re
-kernel clock # ms vs esp_t
+flash reads, parked
+the kernel clock held
 log write, parked
 boot recorded
 settings applied

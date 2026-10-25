@@ -17,6 +17,8 @@ file(GLOB S3_APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/apps/*.cpp")
 idf_component_register(
     SRCS
         "main.cpp"
+        "boot_gfx.cpp"
+        "system.cpp"
         "tests/harness.cpp"
         "tests/test_kernel.cpp"
         "tests/test_kernel_stress.cpp"
