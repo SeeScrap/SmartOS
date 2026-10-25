@@ -108,13 +108,87 @@ tidying-up.
 
 ---
 
+## 3. An app the user installs — `apps/tally.sap`
+
+Neither of the above. This one is a **file**, built on a computer and sent to
+the board over the USB cable. The operating system is not rebuilt and not
+reflashed; the app lands on the board's filesystem, registers itself at the
+next boot, and appears in Home beside everything else.
+
+```
+python tools/sappc.py examples/apps/tally.sap tally.app    # 246 bytes
+python tools/install_app.py tally.app
+  tally installed; it is in Home now
+```
+
+แอปแบบที่สาม: เป็น**ไฟล์** สร้างบนคอมพิวเตอร์แล้วส่งผ่านสาย USB ระบบปฏิบัติการ
+ไม่ถูกบิลด์ใหม่และไม่ถูกแฟลชใหม่ — ตรวจแล้วด้วย `esptool verify_flash`
+
+### It is not native code, and that is the point
+
+Stage 7 measured what running loaded machine code costs on this chip: ESP-IDF's
+memory protection unit marks everything the allocator hands out as
+non-executable, it is locked at boot, and turning it off would let a bug
+anywhere in the system jump into data. The instruction bus does not reach
+PSRAM either. So an installed app is **data**, interpreted by a small stack
+machine in [src/os/vm.h](../src/os/vm.h).
+
+That is better than the alternative rather than a consolation. A built-in app
+is compiled into the firmware and can do anything the kernel can; one stray
+pointer takes the board down. An app running on the machine has no pointers at
+all — only indices, every one checked — reaches the system through a numbered
+table, and runs under an instruction budget. **An installed app is the safest
+thing in this operating system**: the one that loops for ever is stopped at
+its twenty-thousandth instruction, while a built-in one holding core 1 is
+killed two seconds later by the app manager.
+
+### The language
+
+```
+app tally {
+    order 100
+    var count
+
+    on draw {
+        if (full) { text(8, 6, "Tally", 0x56BF, 2) }
+        text_bg(8, 50, fmt("pressed %d times", count), 0xFFFF, 0, 1)
+    }
+
+    on event {
+        if (ev_type == 0 && ev_a == 1) {
+            count = count + 1
+            invalidate()
+        }
+    }
+}
+```
+
+`var`, `fun`, `if`/`else`, `while`, the usual arithmetic and comparisons,
+strings, and calls to the system by name. No arrays and no pointers, because
+the machine has no addresses — which is the property that makes an installed
+app safe, so it is one to keep rather than a gap to fill.
+
+`full`, `ev_type`, `ev_a` and `ev_b` are the system's, filled in before each
+callback.
+
+| | |
+|---|---|
+| the language | [examples/apps/tally.sap](apps/tally.sap), compiled by [tools/sappc.py](../tools/sappc.py) |
+| the assembly it compiles to | [examples/apps/tally.sapp](apps/tally.sapp), assembled by [tools/mkapp.py](../tools/mkapp.py) — `--asm` prints it |
+| what an app may call | [src/os/vm_sys.h](../src/os/vm_sys.h). **These numbers are the ABI**, not `smartos_app.h` |
+| the file's shape | [src/os/appload.h](../src/os/appload.h) |
+| installing it | `tools/install_app.py`, which also does `--list` and `--remove` |
+
+---
+
 ## Which one am I writing?
 
-| | a program on the kernel | an app on the OS |
-|---|---|---|
-| lives in | its own project | one file in `src/apps/` |
-| includes | `smartos.h` | `smartos_app.h` |
-| gets | tasks, locks, clock, heap | all of that, plus screen, events, files, settings, UI |
-| draws | nothing — there is no screen layer | through `draw()`, on the app area |
-| started by | its own `app_main` | the user, from Home |
-| needs | a board and a serial console | the whole operating system |
+| | a program on the kernel | an app in the firmware | an app the user installs |
+|---|---|---|---|
+| is | its own project | one file in `src/apps/` | a file sent over USB |
+| written in | C++ | C++ | the little language |
+| uses | `smartos.h` | `smartos_app.h` | the syscall numbers |
+| rebuilds the OS | no | **yes** | **no** |
+| if it crashes | the board | the board | only itself |
+| if it loops for ever | the watchdog | killed after 2 s | stopped after 20000 instructions |
+| size | 175 KB flash, 17 KB RAM | a few KB of firmware | 246 bytes on the filesystem |

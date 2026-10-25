@@ -124,7 +124,11 @@ static int32_t s_text_width(void *u, const int32_t *v, int argc, vm_err_t *err)
 // its own. Anything that is not "%d" is copied through as itself.
 static int32_t s_fmt(void *u, const int32_t *v, int argc, vm_err_t *err)
 {
-    vm_app_t *a = (vm_app_t *)u; ARGS(4);
+    // One to four: the format string, then as many values as it mentions.
+    // Insisting on four would make every caller pad with zeros, which is the
+    // compiler's business leaking into the interface.
+    vm_app_t *a = (vm_app_t *)u;
+    if (argc < 1 || argc > 4) { *err = VM_ERR_SYSCALL; return 0; }
     const char *f = str_of(a, v[0]);
     if (!f) { *err = VM_ERR_RANGE; return 0; }
     int32_t handle = 0;
@@ -132,7 +136,7 @@ static int32_t s_fmt(void *u, const int32_t *v, int argc, vm_err_t *err)
     size_t o = 0;
     int arg = 1;
     for (size_t i = 0; f[i] && o + 1 < VM_SCRATCH_BYTES; ++i) {
-        if (f[i] == '%' && f[i + 1] == 'd' && arg <= 3) {
+        if (f[i] == '%' && f[i + 1] == 'd' && arg < argc) {
             char num[12];
             k_snprintf(num, sizeof(num), "%ld", (long)v[arg++]);
             for (size_t j = 0; num[j] && o + 1 < VM_SCRATCH_BYTES; ++j) out[o++] = num[j];
