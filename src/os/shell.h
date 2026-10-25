@@ -37,6 +37,12 @@
 // Input is read straight from the USB Serial/JTAG receive FIFO. No driver is
 // installed, so output - stdio from core 0, the ROM console from core 1 - is
 // exactly as before.
+//
+// สาย USB เส้นเดียวกับที่ส่ง log รับคำสั่งด้วย: พิมพ์หนึ่งบรรทัดแล้วกด Enter
+// นี่คือวิธีมองและสั่งระบบโดยไม่ต้องใช้ปุ่มของมัน ซึ่งบนบอร์ดนี้ยังไม่ได้ต่อจริง
+// และเป็นทางที่ชุดทดสอบของ stage 5 ใช้เข้ามา
+//
+// ตั้งแต่ stage 7 มันยังเป็นทางที่แอปเดินเข้าเครื่องด้วย: install / uninstall / apps
 // ---------------------------------------------------------------------------
 
 void     shell_init(void);       // core 0, before the main loop: the first prompt

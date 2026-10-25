@@ -11,6 +11,12 @@
 //    Touching them makes the board fail to boot.
 // Also reserved: 19/20 = native USB, 43/44 = UART0, 0/45/46 = strapping.
 // Free for us: 1-18, 21, 38-42, 47, 48
+//
+// **ห้ามใช้ GPIO 26-37** เด็ดขาด: 26-32 คือแฟลช SPI แบบ octal และ 33-37 คือ
+// PSRAM แบบ octal บนโมดูล R8 แตะเมื่อไรบอร์ดบูตไม่ขึ้นทันที
+//
+// ที่จองไว้อีกชุด: 19/20 คือ USB ภายใน, 43/44 คือ UART0, 0/45/46 คือขา strapping
+// ที่เหลือให้ใช้ได้คือ 1-18, 21, 38-42, 47, 48
 // ---------------------------------------------------------------------------
 
 // ---- LCD bus (chosen to land on the FSPI IOMUX pins -> allows 80 MHz) ------

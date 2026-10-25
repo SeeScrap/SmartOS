@@ -22,6 +22,13 @@
 // scheduler; carrying it now costs about twenty lines. Same reason k_lock() is
 // a function and not an open-coded rsil - stage 2.6b turns it into a spinlock
 // without touching a single caller.
+//
+// แกนของเคอร์เนล: task control block, สถานะการรันรายคอร์, ตัวจัดคิวแบบ
+// round-robin และการสลับบริบทของ Xtensa จริงๆ
+//
+// **เตรียมเป็น SMP ไว้ตั้งแต่ต้นโดยตั้งใจ** สถานะการรันทุกชิ้นอยู่ใน k_percpu_t
+// ที่ดัชนีด้วยหมายเลขคอร์ ทั้งที่วันนี้ K_MAX_CPUS เท่ากับ 1 ถ้ามาใส่ทีหลังแปลว่า
+// ต้องเขียนตัวจัดคิวใหม่ แต่แบกไว้ตั้งแต่ตอนนี้ราคาประมาณยี่สิบบรรทัด
 // ---------------------------------------------------------------------------
 
 // K_MAX_TASKS, K_MAX_CPUS, K_STACK_SIZE, K_STACK_MIN, K_STACK_MAX,

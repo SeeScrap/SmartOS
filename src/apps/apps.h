@@ -15,6 +15,11 @@
 //
 // The peek functions exist for the stage 4.3b test script, which drives these
 // apps with injected button events and needs to see what they made of them.
+//
+// แอปที่มากับระบบ แต่ละตัวเป็น app_t เท่านั้น ไม่มี task ไม่มีคิว ไม่มีพื้นที่วาด
+// ของตัวเอง — ตัวรันใน os/app.cpp จัดให้ทั้งสามอย่าง แต่ละไฟล์ลงทะเบียนตัวเอง
+// ด้วย APP_REGISTER เฮดเดอร์นี้จึงจำเป็นเฉพาะกับโค้ดที่อ้างถึงแอปตัวใดตัวหนึ่ง
+// ด้วยชื่อ ซึ่งก็คือสคริปต์ทดสอบ **แอปใหม่ไม่ต้องมาเพิ่มในไฟล์นี้**
 // ---------------------------------------------------------------------------
 
 extern const app_t app_input;     // stage 3.6's button screen, now an app

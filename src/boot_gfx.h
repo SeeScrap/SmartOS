@@ -6,6 +6,10 @@
 // src/boot_gfx.cpp owns the framebuffer the whole system draws into; it is
 // handed out by system_fb() in system.h. Everything here runs once, at boot,
 // before the apps exist.
+//
+// src/boot_gfx.cpp เป็นเจ้าของ framebuffer ที่ทั้งระบบวาดลงไป และส่งต่อออกมา
+// ด้วย system_fb() ใน system.h ทุกอย่างในไฟล์นี้ทำงานครั้งเดียวตอนบูต
+// ก่อนที่แอปจะมีตัวตน
 // ---------------------------------------------------------------------------
 
 // Takes the framebuffer out of PSRAM. Must be first.

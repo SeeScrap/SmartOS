@@ -34,6 +34,15 @@
 // Every block carries an owner tag: 0 for the kernel, or whatever the caller
 // passes. kheap_free_owner frees everything a tag holds in one go - how an
 // app's PSRAM is returned when it ends, whether it closed or was killed.
+//
+// heap_caps_malloc() ของ IDF จับล็อกของ FreeRTOS ซึ่งคอร์ 1 ไม่ควรไปแตะ
+// เคอร์เนลจึงจัดการหน่วยความจำเอง: first fit, boundary tag, รวมบล็อกตอน free
+// ไม่มีอะไรฉลาด เพราะสิ่งที่ต้องการคือความเป็นเจ้าของและความคาดเดาได้
+// ไม่ใช่ความเร็วสูงสุดของตัวจัดสรร โค้ดอยู่ใน IRAM จึงยังทำงานได้ตอนแคชแฟลชปิด
+//
+// สองพูล: KHEAP_INTERNAL (RAM ภายใน 128 KB) สำหรับ stack ของงาน สถานะแอป
+// และทุกอย่างที่ต้องทำงานได้ตอนแคชปิด หรือเป็นเป้าของคำสั่ง atomic
+// กับ KHEAP_PSRAM (4 MB) สำหรับข้อมูลก้อนใหญ่ของแอป และ **ห้ามใช้ทำ stack**
 // ---------------------------------------------------------------------------
 
 // The two pool sizes, what the internal one settles for, what is left to

@@ -11,6 +11,12 @@
 // pick it up and print it from a context where printf is safe.
 //
 // The layout is duplicated as FF_* offsets in kvectors.S - change both together.
+//
+// คอร์ 1 ไม่มีตัวจัดการ panic ของตัวเองและยืมของ IDF ไม่ได้ เมื่อมันพัง ตารางเวกเตอร์
+// จะเขียนสิ่งที่รู้ลงในเฟรมนี้แล้วหยุด เฟรมอยู่ใน DRAM ภายในซึ่งทั้งสองคอร์เห็นตรงกัน
+// คอร์ 0 จึงหยิบไปพิมพ์ได้จากที่ที่ printf ปลอดภัย
+//
+// ผังของเฟรมถูกเขียนซ้ำเป็น FF_* ใน kvectors.S ต้องแก้พร้อมกันทั้งสองที่
 // ---------------------------------------------------------------------------
 typedef struct {
     uint32_t a0;         // 0x00  the faulting code's a0

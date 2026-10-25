@@ -9,6 +9,10 @@
 // screen to the apps, then run this loop. The test suites live in src/tests/
 // and need exactly two things from it - one pass of the loop, and the screen
 // they check pixels in.
+//
+// main.cpp คือลำดับบูต: ปลุกฮาร์ดแวร์ เริ่มคอร์ 1 ส่งจอให้แอป แล้วรันลูปนี้
+// ชุดทดสอบใน src/tests/ ต้องการจากมันแค่สองอย่าง คือหนึ่งรอบของลูป
+// และจอที่มันจะไปตรวจพิกเซล
 // ---------------------------------------------------------------------------
 
 // One pass of core 0's loop: serve core 1's mailbox, reap apps, flush a frame,

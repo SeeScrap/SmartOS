@@ -20,6 +20,14 @@
 //
 // It is off until enabled so that the tick can be brought up and checked on its
 // own - a handler that both counts wrong and switches wrong is no fun at all.
+//
+// tick มาจาก CCOMPARE0 ซึ่งเป็นตัวจับเวลาที่อยู่ในแกน Xtensa เอง การเลือกแบบนี้
+// สำคัญ: CCOMPARE0 กับ INTENABLE เป็นรีจิสเตอร์รายคอร์ คอร์ 1 จึงได้อินเทอร์รัปต์
+// ที่คอร์ 0 มองไม่เห็น ปิดไม่ได้ และไม่ต้องไปขอ ไม่ต้องจัดเส้นทางผ่าน interrupt
+// matrix ไม่ต้องใช้อุปกรณ์ร่วม ไม่ต้องตกลงกับ IDF
+//
+// เมื่อเปิด preemption แล้ว tick ไม่ได้แค่ขอให้จัดคิวใหม่ แต่ลงมือสลับงานเลย
+// จากในอินเทอร์รัปต์ บน stack ของงานที่ถูกขัดจังหวะเอง
 // ---------------------------------------------------------------------------
 
 // Written by the ISR, read by everyone. Defined in kvectors.S.

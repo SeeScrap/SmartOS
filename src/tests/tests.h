@@ -17,6 +17,10 @@
 // open apps are only built with -D SMARTOS_TEST_APPS - on a normal boot only the
 // user opens apps - so their files are empty without it, and main.cpp calls
 // them from inside the same #ifdef.
+//
+// ทุกชุดในนี้รันบนบอร์ดจริงและพิมพ์บรรทัดของตัวเองออกมา ชุดที่เปิดแอปจะถูก
+// คอมไพล์ต่อเมื่อใส่ -D SMARTOS_TEST_APPS เท่านั้น เพราะในการบูตปกติมีแต่ผู้ใช้
+// ที่เปิดแอป ไฟล์ของชุดเหล่านั้นจึงว่างเปล่าถ้าไม่ใส่แฟล็ก
 // ---------------------------------------------------------------------------
 
 // Logic, fed a script - no hardware beyond the framebuffer. Every boot.

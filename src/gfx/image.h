@@ -20,6 +20,13 @@
 // changes when the firmware does. When a picture has to be changeable without
 // a rebuild - a photo the user chose - the same image_t can point at a buffer
 // loaded from a file instead, and everything below still works.
+//
+// รูปคือความกว้าง ความสูง และพิกเซล เรียงตามลำดับสายของจอโดยตรง การวาดรูป
+// จึงเป็นแค่การคัดลอกทีละแถว ไม่มีการถอดรหัส ไม่มีการแปลง ไม่มีการจองหน่วยความจำ
+//
+// tools/mkimage.py เตรียมรูปบนคอมพิวเตอร์: ย่อ ตัด หรี่ แปลง แล้วได้ไฟล์ C
+// ที่อาเรย์อยู่ในแฟลช ภาพพื้นหลังของ Home ถูกอ่านจากแฟลชขณะวาด
+// และไม่เคยถูกคัดลอกเข้า RAM เลย
 // ---------------------------------------------------------------------------
 
 typedef struct {

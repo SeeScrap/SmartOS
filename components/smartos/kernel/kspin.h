@@ -24,6 +24,13 @@
 // Every acquire is bounded. A core that dies holding the lock must not take the
 // other one down with it - especially here, where the whole point of the other
 // core is to be able to report that the first one crashed.
+//
+// k_lock() ใน ktask.h แค่ปิดอินเทอร์รัปต์ ซึ่งพอสำหรับกันงานสองงานบนคอร์เดียวกัน
+// แต่ไม่ได้ทำอะไรกับคอร์อีกตัวเลย ที่แรกที่เรื่องนี้สำคัญคือคอนโซล: คอร์ 0 พิมพ์ด้วย
+// printf ส่วนคอร์ 1 พิมพ์ด้วย esp_rom_printf แล้วทั้งคู่ไปลง FIFO เดียวกัน
+//
+// ทุกการจับล็อกมีเพดานเวลา คอร์ที่ตายขณะถือล็อกต้องไม่ลากอีกคอร์ไปด้วย
+// โดยเฉพาะที่นี่ ซึ่งเหตุผลทั้งหมดของการมีอีกคอร์คือการรายงานว่าคอร์แรกพัง
 // ---------------------------------------------------------------------------
 
 // K_SPIN_TIMEOUT - how long k_spin_lock waits before giving up - is set in

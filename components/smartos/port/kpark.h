@@ -40,6 +40,14 @@
 //   the console lock in particular. Core 1 can be parked holding it.
 // - Keep the window to the flash operation itself. Core 1's whole scheduler is
 //   stopped for the duration; its clock is not (see k_int_dispatch).
+//
+// ทุกครั้งที่ไดรเวอร์แฟลช SPI ทำงาน ไม่ว่าอ่าน เขียน หรือลบ มันจะปิดแคช
+// บนชิปนี้การปิดแคชทำให้ทั้งแฟลชและ PSRAM เอื้อมไม่ถึงพร้อมกัน นานเท่าที่
+// คำสั่งนั้นใช้ การลบหนึ่งเซกเตอร์ 4 KB กินเวลาหลายสิบมิลลิวินาที
+//
+// IDF ปกป้องคอร์ที่สองของตัวเองด้วยการสั่งให้มันหยุด ของเราไม่ใช่ของ IDF
+// คอร์ 0 จึงต้อง "ขอ" ให้คอร์ 1 ถอยออกจากแคชแทน: ยก FROM_CPU_INTR3 →
+// คอร์ 1 ตอบรับแล้ววนรอใน IRAM → คอร์ 0 เขียนแฟลช → ปล่อยคอร์ 1 กลับไปทำงานเดิม
 // ---------------------------------------------------------------------------
 
 // KPARK_CPU_INT (core 1's interrupt for the park request), KPARK_TIMEOUT_US

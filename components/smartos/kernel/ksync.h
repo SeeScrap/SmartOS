@@ -29,6 +29,13 @@
 // fair. A task that spends its life waiting on a busy mutex behind a lower id
 // can starve. Priorities (also in this stage) are the answer to that, not a
 // cleverer wait list.
+//
+// ก่อนหน้านี้เคอร์เนลรันงานได้แต่งานคุยกันไม่ได้นอกจากผ่านตัวแปรร่วมกับความหวัง
+// spinlock ใน kspin.h ใช้แทนไม่ได้ เพราะมันวนรอ ซึ่งถูกสำหรับสองสามคำสั่งใน
+// critical section ของตัวจัดคิว แต่ผิดสนิทสำหรับงานที่รออีกงานหนึ่ง การรอต้องคืนคอร์
+//
+// ของพวกนี้จึงบล็อกจริง และรายชื่อผู้รอเป็น bitmask คำเดียว เพราะ K_MAX_TASKS
+// เล็กและคงที่ การปลุกใครสักคนจึงเป็นการทดสอบบิต ไม่ต้องจองหน่วยความจำ
 // ---------------------------------------------------------------------------
 
 typedef uint32_t k_waitset_t;   // one bit per task

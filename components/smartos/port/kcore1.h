@@ -8,6 +8,10 @@
 // With CONFIG_FREERTOS_UNICORE the IDF startup never touches the second core:
 // it stays stalled and held in reset for the whole life of the program. That
 // makes it ours to take, which is the foundation the whole L4 plan rests on.
+//
+// เมื่อเปิด CONFIG_FREERTOS_UNICORE ลำดับบูตของ IDF จะไม่แตะคอร์ที่สองเลย
+// มันถูกปล่อยให้ค้างและกดรีเซ็ตไว้ตลอดอายุโปรแกรม นั่นทำให้มันเป็นของเรา
+// และเป็นรากฐานที่แผนทั้งหมดวางอยู่บน
 // ---------------------------------------------------------------------------
 
 typedef void (*kcore1_entry_t)(void);

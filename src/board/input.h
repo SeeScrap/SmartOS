@@ -38,6 +38,14 @@
 // button index, t_ms = when the edge was accepted - and anyone who wants
 // buttons subscribes. Dropping, sequence numbers and gap detection moved to
 // the bus, per subscriber, so a slow reader loses only its own events.
+//
+// ปุ่มต่อแบบ GPIO -> สวิตช์ -> GND และอ่านด้วย pull-up ภายใน ปุ่มที่ถูกกดจึง
+// อ่านได้เป็น LOW
+//
+// **ทำไมเป็นเหตุการณ์ ไม่ใช่ bitmask** ของเดิมคือ input_poll() กับ mask
+// held/pressed/released ที่สุ่มอ่านจากลูปของคอร์ 0 ซึ่งมีจุดพลาดสองอย่างที่ UI
+// จะเจอแน่ๆ: การแตะที่สั้นกว่าช่วงห่างระหว่างการอ่านจะหายไปเฉยๆ เพราะ mask
+// บอกได้แค่ว่าอะไรจริง ณ ตอนนี้ และผู้ใช้ข้อมูลทุกรายต้องอ่านให้ถี่พอ ไม่งั้นพลาดขอบ
 // ---------------------------------------------------------------------------
 
 enum {
