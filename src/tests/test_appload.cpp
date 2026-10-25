@@ -31,12 +31,11 @@
 // ---------------------------------------------------------------------------
 
 #define TEST_APP "selftest"
-#define TEST_DIR "/fs/installed"
 
 static bool write_blob(void)
 {
-    mkdir(TEST_DIR, 0775);
-    FILE *f = fopen(TEST_DIR "/" TEST_APP ".app", "wb");
+    mkdir(APPLOAD_DIR, 0775);
+    FILE *f = fopen(APPLOAD_DIR "/" TEST_APP APPLOAD_EXT, "wb");
     if (!f) return false;
     const size_t n = fwrite(k_test_app, 1, sizeof(k_test_app), f);
     fclose(f);
@@ -59,7 +58,7 @@ void appload_test(void)
 
     // Start from nothing, whatever an earlier run or a real install left.
     if (appload_count() > 0) appload_forget(TEST_APP);
-    unlink(TEST_DIR "/" TEST_APP ".app");
+    unlink(APPLOAD_DIR "/" TEST_APP APPLOAD_EXT);
 
     const uint32_t before = appload_bytes();
     const int reg_before  = app_registry_count();
@@ -67,7 +66,7 @@ void appload_test(void)
     // 1. The file, written the way the shell writes it.
     {
         const bool ok = write_blob();
-        snprintf(d, sizeof(d), "%u bytes to " TEST_DIR "/" TEST_APP ".app",
+        snprintf(d, sizeof(d), "%u bytes to " APPLOAD_DIR "/" TEST_APP APPLOAD_EXT,
                  (unsigned)sizeof(k_test_app));
         sdk_case("an app arrives as a file", ok, d);
     }
@@ -124,24 +123,24 @@ void appload_test(void)
     //    this firmware does not speak, both have to be turned away with a
     //    reason rather than run.
     {
-        FILE *f = fopen(TEST_DIR "/junk.app", "wb");
+        FILE *f = fopen(APPLOAD_DIR "/junk" APPLOAD_EXT, "wb");
         if (f) { fputs("this is not an app at all", f); fclose(f); }
         const bool refused = !appload_one("junk");
         snprintf(d, sizeof(d), "%s", appload_last_error());
         sdk_case("rubbish is refused", refused, d);
-        unlink(TEST_DIR "/junk.app");
+        unlink(APPLOAD_DIR "/junk" APPLOAD_EXT);
     }
     {
         unsigned char bad[sizeof(k_test_app)];
         memcpy(bad, k_test_app, sizeof(bad));
         bad[4] = (unsigned char)(SMARTOS_ABI_VERSION + 1);   // a future ABI
-        FILE *f = fopen(TEST_DIR "/future.app", "wb");
+        FILE *f = fopen(APPLOAD_DIR "/future" APPLOAD_EXT, "wb");
         if (f) { fwrite(bad, 1, sizeof(bad), f); fclose(f); }
         const bool refused = !appload_one("future");
         snprintf(d, sizeof(d), "%s", appload_last_error());
         sdk_case("another ABI is refused", refused, d);
-        unlink(TEST_DIR "/future.app");
+        unlink(APPLOAD_DIR "/future" APPLOAD_EXT);
     }
 
-    unlink(TEST_DIR "/" TEST_APP ".app");
+    unlink(APPLOAD_DIR "/" TEST_APP APPLOAD_EXT);
 }

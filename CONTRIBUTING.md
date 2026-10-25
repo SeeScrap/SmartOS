@@ -23,7 +23,7 @@ Then **read what the board prints**. It checks itself at every boot and says so:
   ...
 ```
 
-51 checks on an ordinary boot. If one of them says FAIL on hardware that should
+74 checks on an ordinary boot. If one of them says FAIL on hardware that should
 be working, that is a bug worth reporting with the whole line - the detail
 column is there so the number that was wrong is in the report.
 

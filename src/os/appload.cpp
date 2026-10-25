@@ -32,7 +32,6 @@
 // โฟลเดอร์ของแอปที่เรียก ตัวโหลดอยู่บน core 0 อยู่แล้วและไม่ใช่แอป
 // ---------------------------------------------------------------------------
 
-#define INSTALLED_DIR "/fs/installed"
 
 static char s_error[96];
 
@@ -196,7 +195,7 @@ bool appload_one(const char *name)
     if (!a) return fail("no room for another installed app", name);
 
     char path[96];
-    k_snprintf(path, sizeof(path), INSTALLED_DIR "/%s%s", name, APPLOAD_DIR);
+    k_snprintf(path, sizeof(path), APPLOAD_DIR "/%s%s", name, APPLOAD_EXT);
     FILE *f = fopen(path, "rb");
     if (!f) return fail("no such file", name);
 
@@ -319,16 +318,16 @@ bool appload_one(const char *name)
 
 int appload_scan(void)
 {
-    mkdir(INSTALLED_DIR, 0775);
-    DIR *d = opendir(INSTALLED_DIR);
+    mkdir(APPLOAD_DIR, 0775);
+    DIR *d = opendir(APPLOAD_DIR);
     if (!d) return 0;
 
     int n = 0;
     struct dirent *e;
     while ((e = readdir(d)) != nullptr) {
         const size_t len = strlen(e->d_name);
-        const size_t ext = strlen(APPLOAD_DIR);
-        if (len <= ext || strcmp(e->d_name + len - ext, APPLOAD_DIR) != 0) continue;
+        const size_t ext = strlen(APPLOAD_EXT);
+        if (len <= ext || strcmp(e->d_name + len - ext, APPLOAD_EXT) != 0) continue;
         char name[APPLOAD_NAME_MAX];
         const size_t keep = len - ext;
         if (keep >= sizeof(name)) continue;

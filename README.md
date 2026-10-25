@@ -98,21 +98,32 @@ Two files are generated and committed because the build needs them:
 
 ## Writing for SmartOS
 
-Two different jobs, and the system now makes the difference explicit. There is
-a worked example of each in **[examples/](examples/)**.
+Three different jobs, and the system makes the difference explicit. There is a
+worked example of each in **[examples/](examples/)**.
 
-| | a program on the kernel | an app on the OS |
-|---|---|---|
-| include | `smartos.h` | `smartos_app.h` |
-| you get | tasks, mutexes, semaphores, queues, the clock, the heap, `klog` | all of that, plus the screen, events, files, settings, the log, the toolkit, the buttons |
-| lives in | its own project, pointed at `components/smartos` | one file dropped in `src/apps/` |
-| started by | its own `app_main` | the user, from Home |
-| example | [examples/kernel_blink/](examples/kernel_blink/) — 175 KB of flash, 17 KB of RAM | [src/apps/app_hello.cpp](src/apps/app_hello.cpp) — copy it |
+| | a program on the kernel | an app in the firmware | an app the user installs |
+|---|---|---|---|
+| is | its own project, pointed at `components/smartos` | one file dropped in `src/apps/` | a file sent over USB |
+| written in | C++, including `smartos.h` | C++, including `smartos_app.h` | the little language, compiled by `tools/sappc.py` |
+| you get | tasks, mutexes, semaphores, queues, the clock, the heap, `klog` | all of that, plus the screen, events, files, settings, the log, the toolkit, the buttons | nineteen numbered system calls |
+| started by | its own `app_main` | the user, from Home | the user, from Home |
+| rebuilds the OS | no | **yes** | **no** |
+| if it crashes | the board | the board | only itself |
+| if it loops for ever | the watchdog | killed after 2 s | stopped after 20,000 instructions |
+| example | [examples/kernel_blink/](examples/kernel_blink/) — 175 KB of flash, 17 KB of RAM | [src/apps/app_hello.cpp](src/apps/app_hello.cpp) — copy it | [examples/apps/tally.sap](examples/apps/tally.sap) — 246 bytes |
 
 `examples/kernel_blink` is a separate PlatformIO project that builds against
 the kernel component and three ESP-IDF components, with no part of the
 operating system in it at all. That it links and runs is the reason the layers
 are arranged the way they are.
+
+The third column is stage 7, and it is the one that changes what this board
+is: **installing an app does not reflash the firmware.** The app lands on the
+`storage` partition, registers itself at the next boot and appears in Home
+beside the built-in ones. It is interpreted rather than native, which is a
+measured decision and not a limitation worked around — see
+[Stage 7](#stage-7---apps-the-user-installs) for what the chip was asked and
+what it answered.
 
 Every setting the system has is one file, **[include/smartos_config.h](include/smartos_config.h)**:
 eighteen sections, every entry wrapped in `#ifndef` so a project can override
@@ -159,21 +170,25 @@ here was measured against. `managed_components/` is not in the repository
 because that file is what restores it.
 
 **The board checks itself at every boot** and prints the result over USB, so
-`-t monitor` is not optional reading: 48 cases on an ordinary boot, and with
-`-D SMARTOS_TEST_APPS` in `build_flags`, 132. `python tools/boot_check.py` resets
+`-t monitor` is not optional reading: 74 cases on an ordinary boot, and with
+`-D SMARTOS_TEST_APPS` in `build_flags`, 158. `python tools/boot_check.py` resets
 the board, counts them for you and compares the case names against a committed
 baseline, so a test that quietly stops running is noticed. The other test
 builds - the kernel under load, a full filesystem, an app that never yields -
 are listed with what each one must print at the bottom of
 [platformio.ini](platformio.ini).
 
-> **A correction.** The stage-by-stage record below quotes higher figures -
-> 51 and 134, and later 51 and 135. Those came from counting every line of
+> **The numbers moved twice, in opposite directions.** The stage-by-stage
+> record below quotes 51 and 134, and later 51 and 135. Those came from
+> counting every line of
 > the boot log that ends in `OK`, and three of those lines are not tests:
 > ESP-IDF's own `SPI SRAM memory test OK`, and the `[consumer]` and `[mbox]`
 > demo tasks reporting their own sums. Nothing regressed; the count was
-> wrong, not the firmware. The per-stage numbers are left as they were
-> written, because that is what was measured at the time.
+> wrong, not the firmware. The real figures were 48 and 132. They are 74
+> and 158 now because stage 7's two suites - the bytecode machine and the
+> loader - used to run only behind a build flag, and from S7h they run on
+> every boot like everything else. The per-stage numbers are left as they
+> were written, because that is what was measured at the time.
 
 The host-side tools in [tools/](tools/) talk to the board over the same USB
 connection: `shell_test.py` drives the shell through its whole command set,
@@ -3240,6 +3255,191 @@ longer than 160 ms must cost it events. The claim now matches what the system
 actually promises - every reading the sampler took reached the app, and every
 one the app lost is covered by the time core 1 was parked - which is the same
 rule the event bus's timer test has used since stage 4.2 for lateness.
+
+## Stage 7 - apps the user installs
+
+The problem, in one sentence: all eight apps were compiled into the firmware,
+so adding one meant reflashing the board, which meant **overwriting the
+operating system in order to install a program**. On a desktop that would be
+absurd.
+
+The measurable goal was written down before any code: install an app over the
+USB cable, see it in Home, open it, reboot, uninstall it - and prove the
+firmware partition was never touched.
+
+### S7a - can this board run code it was not built with?
+
+Everything after this depended on three questions that documentation cannot
+answer, so a throw-away test build asked the hardware. It printed:
+
+```
+the probe, as built       probe_add at 0x420988ac, in flash (instruction bus)  OK
+executable memory exists  written at 0x3fceed58 (internal DRAM),
+                          called at 0x403ded58                                 OK
+a copy of it runs         copied 64 bytes, called it, got 1834 (want 1834)     OK
+PSRAM                     InstructionFetchError at 0x3c5269b4
+```
+
+Three things were learned, and two of them killed the plan:
+
+- **`MALLOC_CAP_EXEC` does not exist on this chip.** It is behind
+  `CONFIG_HEAP_HAS_EXEC_HEAP`, which the S3 does not set. There is no
+  executable heap to allocate from.
+- **Internal SRAM is dual-mapped.** The same bytes are written through
+  `0x3FC8_0000`+ and executed through `0x4037_0000`+, a fixed `SOC_I_D_OFFSET`
+  apart. Code written to a DRAM address and called at that address faults in
+  the cache; converted with `esp_ptr_diram_dram_to_iram()` it runs. That is
+  line 3 above.
+- **The instruction bus does not reach PSRAM at all.** Not slowly - at all.
+  The 4 MB the kernel heap keeps there can hold an app's data and never its
+  code.
+
+And the decisive one: line 3 only passed with `CONFIG_ESP_SYSTEM_MEMPROT`
+turned off. With it on - and it is on, and locked by the PMS hardware at boot
+- every byte the allocator hands out is non-executable.
+
+**So the choice was: turn the chip's memory protection off for the whole
+system, for ever, so that a file somebody downloaded can run as native code;
+or do not run native code.** Protection stayed on.
+
+### S7b - a machine instead
+
+An installed app is **data**, interpreted by a stack machine in
+[src/os/vm.h](src/os/vm.h): 33 opcodes, 32-bit words, four spaces that cannot
+overlap - code, constants, globals, operand stack - and **not one instruction
+in it takes an address**. There is nothing for a bad app to point at.
+
+Every way out is a checked error rather than a fault, and each one has a test
+that provokes it on every boot:
+
+```
+  an instruction it lacks      stopped: unknown instruction                    OK
+  reading past its own memory  stopped: index out of range                     OK
+  jumping out of the program   stopped: index out of range                     OK
+  taking from an empty stack   stopped: stack over- or underflow               OK
+  filling the stack            stopped: stack over- or underflow               OK
+  dividing by zero             stopped: divide by zero                         OK
+  looping for ever             stopped: ran too long                           OK
+  recursing without end        stopped: calls nested too deep                  OK
+  how fast it runs             2404 runs of 140 instructions in 100 ms,
+                               about 3365 k instr/s                            OK
+```
+
+3.4 million instructions a second, and a callback is cut off at
+`VM_BUDGET_PER_CALL` (20,000) instructions. An app that loops for ever is
+stopped in six milliseconds.
+
+**This came out safer than the thing it replaced.** A built-in app is compiled
+into the firmware and can do anything the kernel can; one stray pointer takes
+the board down. An installed app cannot form a pointer. A built-in app that
+hangs is killed two seconds later by the app manager (stage 5.2); an installed
+one never gets to hang.
+
+### S7c - the ABI is nineteen numbers
+
+[src/os/vm_sys.h](src/os/vm_sys.h) is the real interface: nineteen numbered
+calls, from `0 invalidate` to `18 height`. **Those numbers are the promise**,
+not the C names in `smartos_app.h` - an installed app never links against a
+symbol. A `static_assert` ties the table in `vm_sys.cpp` to the enum, so an
+entry added to one and not the other stops the build instead of quietly
+renumbering every app already on somebody's board.
+
+Strings are handles, not pointers: zero or more means an offset into the app's
+own string block, negative means one of two scratch buffers. `fmt` understands
+`%d` and nothing else, deliberately - handing a format string that came out of
+a file to a real `printf` is how a program gets talked into reading memory that
+is not its own.
+
+### S7d and S7e - the file, and the cable
+
+A 56-byte header, then the constant pool, the code and the strings laid end to
+end. Every length is checked against the file's actual size before a byte of
+it is trusted. The whole app - constants, code, strings, globals and stack -
+is one allocation from the kernel pool tagged with the app's owner id, so
+uninstalling gives back exactly what installing took.
+
+```
+install <name> <bytes>     then base64 lines, then `end`
+uninstall <name>
+apps
+```
+
+`tools/install_app.py` does it from a computer. Base64 over the line-based
+shell, because that keeps `tools/shell_test.py` able to drive the whole thing.
+
+**Nothing in Home was changed.** `app_register()` has been a run-time call
+since stage 4.3b, so an app that arrives as a file walks into the registry
+through the same door as one compiled in. That is why this stage is as small
+as it is, and it was luck rather than foresight.
+
+### The proof that the OS survives
+
+The point of the whole stage, run in one sitting on the board: compile
+`tally.sap` on a computer (246 bytes), install it over the cable, watch it
+appear in Home, open it with the buttons, press, close it, pull the power,
+plug it back in, find it still there, uninstall it - and then:
+
+```
+esptool verify_flash 0x10000 firmware.bin
+  verify OK (digest matched)
+```
+
+The firmware partition is byte-for-byte what was flashed. Installing a program
+did not touch the operating system, which is the sentence this stage exists to
+make it possible to write.
+
+### S7f - a language, because assembly is not a product
+
+[tools/sappc.py](tools/sappc.py) compiles a small language to the bytecode:
+`var`, `fun`, `if`/`else`, `while`, full operator precedence with
+short-circuit `&&` and `||`, strings, and system calls by name. No arrays and
+no pointers - the machine has no addresses, and that is the property that
+makes an installed app safe, so it is a thing to keep rather than a gap to
+fill.
+
+```
+app tally {
+    order 100
+    var count
+
+    on draw {
+        if (full) { text(8, 6, "Tally", 0x56BF, 2) }
+        text_bg(8, 50, fmt("pressed %d times", count), 0xFFFF, 0, 1)
+    }
+
+    on event {
+        if (ev_type == 0 && ev_a == 1) { count = count + 1  invalidate() }
+    }
+}
+```
+
+### S7h - the board installs an app on itself
+
+All of the above was proved by hand with a cable. That shows it worked once;
+nothing would have noticed it stopping. Both stage 7 suites run on every boot
+now.
+
+`examples/apps/selftest.sap` is compiled on a computer and embedded in the
+firmware as 98 bytes by `tools/mkappblob.py`. At boot the board writes it to
+`/fs/installed`, loads it through the same `appload_one()` the shell calls,
+focuses it, taps a button at it, and takes it away again:
+
+```
+  an app arrives as a file     98 bytes to /fs/installed/selftest.app          OK
+  it loads and registers       loaded; registry 12 -> 13, 263 B of the pool    OK
+  it opens, draws and hears a button  id 1, 1 frame(s), 4 event(s)             OK
+  it uninstalls cleanly        forgotten; registry back to 12, pool back       OK
+  rubbish is refused           junk: too short                                 OK
+  another ABI is refused       future: built for ABI 2, this is 1 - rebuild it OK
+```
+
+The only part of the real install path left out is the cable. The pool check
+is for the exact byte count, not "about the same".
+
+One wrong FAIL came out of writing this: the test opened the app and then
+asked why it had drawn no frames. An unfocused app never draws - that is the
+app model, and it has been checked since stage 4.3b. The test was wrong, not
+the loader.
 
 ## Measurements from stage 1
 

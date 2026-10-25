@@ -515,9 +515,9 @@ static void cmd_install(int argc, char **argv)
     const uint32_t n = (uint32_t)strtoul(argv[2], nullptr, 10);
     if (n == 0 || n > 65536) { logf("  that size is not believable\n"); return; }
 
-    mkdir("/fs/installed", 0775);
+    mkdir(APPLOAD_DIR, 0775);
     char path[96];
-    snprintf(path, sizeof(path), "/fs/installed/%s.app", argv[1]);
+    snprintf(path, sizeof(path), APPLOAD_DIR "/%s" APPLOAD_EXT, argv[1]);
     s_rx = fopen(path, "wb");
     if (!s_rx) { logf("  cannot write %s\n", path); return; }
 
@@ -531,7 +531,7 @@ static void cmd_uninstall(int argc, char **argv)
     if (argc < 2) { logf("  uninstall <app>\n"); return; }
     if (!appload_forget(argv[1])) { logf("  %s\n", appload_last_error()); return; }
     char path[96];
-    snprintf(path, sizeof(path), "/fs/installed/%s.app", argv[1]);
+    snprintf(path, sizeof(path), APPLOAD_DIR "/%s" APPLOAD_EXT, argv[1]);
     unlink(path);
     logf("  %s uninstalled, and its file is gone\n", argv[1]);
     slog("shell", "uninstalled %s", argv[1]);

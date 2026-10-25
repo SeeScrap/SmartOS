@@ -10,8 +10,8 @@
 // แอปที่ผู้ใช้ติดตั้งเอง โหลดมาจากระบบไฟล์
 // ===========================================================================
 //
-// An installed app is a file at /fs/apps/<name>.app. At boot this reads each
-// one, checks it, gives it memory from the kernel pool and registers it -
+// An installed app is a file at /fs/installed/<name>.app. At boot this reads
+// each one, checks it, gives it memory from the kernel pool and registers it -
 // after which Home lists it beside the apps that were built into the
 // firmware, and the user opens it the same way.
 //
@@ -58,10 +58,14 @@
 #define APPLOAD_MAX 6
 #endif
 
-// Where they live, and what they are called.
-#define APPLOAD_DIR ".app"
+// Where they live, and what they are called. Both are here rather than in
+// each file that needs them: the shell writes the file, appload reads it and
+// the self-test writes one of its own, and three spellings of one path is a
+// bug waiting for somebody to change two of them.
+#define APPLOAD_DIR "/fs/installed"
+#define APPLOAD_EXT ".app"
 
-// Core 0, at boot, after the kernel is up: read every app in /fs/apps and
+// Core 0, at boot, after the kernel is up: read every app in APPLOAD_DIR and
 // register the ones that are sound. Returns how many were registered.
 int appload_scan(void);
 
