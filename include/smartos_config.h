@@ -404,6 +404,13 @@
 #define LCD_SPI_HZ  (80 * 1000 * 1000)
 #endif
 
+// How long the bring-up demo scene stays on screen after the boot screen,
+// before the launcher takes over. It exists to be judged by eye, so it needs
+// long enough to be looked at; 0 skips it.
+#ifndef GFX_DEMO_HOLD_MS
+#define GFX_DEMO_HOLD_MS  1500
+#endif
+
 // The backlight is a 10-bit LEDC channel, so full brightness is this duty.
 // Four places used to write 1023 by hand.
 #ifndef LCD_BACKLIGHT_MAX_DUTY

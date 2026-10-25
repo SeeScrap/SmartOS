@@ -7,6 +7,7 @@
 //
 // Moved out of main.cpp in R2d of the SmartOS restructuring.
 
+#include "boot_gfx.h"
 #include "system.h"
 
 #include <stdio.h>
@@ -116,6 +117,25 @@ void system_loop(void)
     boot_step("the launcher");
     boot_screen_hold();
     boot_screen_end();
+
+    // Every drawing primitive at once, held long enough to look at. Its whole
+    // purpose is to let clipping and colour order be judged by eye, and from
+    // stage 6.1 until R2f it could not be: it was painted before the boot
+    // screen, while the backlight was still at 0, and then painted over.
+    //
+    // The wait serves the mailbox but does not call system_pass(): a pass can
+    // decide to redraw the status bar, which would put the bar across the top
+    // of the scene. Core 1 is already running, and kmbox_call() gives up after
+    // KMBOX_TIMEOUT_MS, so leaving the mailbox unserved for this long is the
+    // one thing that would really break.
+#if !defined(S3_GFX_SELFTEST) && GFX_DEMO_HOLD_MS > 0
+    gfx_demo_scene();
+    const int64_t demo_t0 = esp_timer_get_time();
+    while ((esp_timer_get_time() - demo_t0) / 1000 < GFX_DEMO_HOLD_MS) {
+        kmbox_service();
+        hal_delay_ms(2);
+    }
+#endif
 #endif
 
     fb_clear(system_fb(), fb_rgb(16, 20, 32));

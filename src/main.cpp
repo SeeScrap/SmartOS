@@ -396,7 +396,10 @@ extern "C" void app_main(void)
     // Keep it - the next panel will need it too.
     gfx_selftest();
 #else
-    gfx_demo_scene();
+    // gfx_demo_scene() used to be called here and could not be seen: the
+    // backlight is still at 0 until the boot screen fades in, and the boot
+    // screen then paints over it. It runs after the boot screen now - see
+    // system_loop() in system.cpp.
     gfx_damage_demo();
     gfx_chunk_demo();
     gfx_text_demo();
