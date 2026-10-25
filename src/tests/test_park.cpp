@@ -1,8 +1,8 @@
 // Stage 4.3a - parking core 1 around flash operations, and the two tests that
 // prove it works: 100 reads on every boot, and 40 erase/write/verify rounds
-// under -D S3_TEST_PARK with core 1 running flash-resident code throughout.
+// under -D SMARTOS_TEST_PARK with core 1 running flash-resident code throughout.
 //
-// -D S3_TEST_PARK_OFF runs the same rounds with the park disabled, to show
+// -D SMARTOS_TEST_PARK_OFF runs the same rounds with the park disabled, to show
 // what it prevents. That build is expected to crash.
 //
 // Moved out of main.cpp in R2c of the SmartOS restructuring. The only change
@@ -32,7 +32,7 @@
 
 // A park wraps every flash operation. The _OFF build skips it on purpose, to
 // show what the park prevents.
-#ifdef S3_TEST_PARK_OFF
+#ifdef SMARTOS_TEST_PARK_OFF
 #define PARK_BEGIN() (true)
 #define PARK_END()   do { } while (0)
 #else
@@ -105,7 +105,7 @@ void park_smoke_test(void)
     park_report(kms, ems);
 }
 
-#if defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
+#if defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
 // The workload the park exists for: core 1 running code that lives in flash
 // and writing memory that lives in PSRAM, flat out, while core 0 erases and
 // writes flash underneath it.
@@ -148,7 +148,7 @@ static void flashwork_task(void *arg)
 void park_flash_test(void)
 {
     logln();
-#ifdef S3_TEST_PARK_OFF
+#ifdef SMARTOS_TEST_PARK_OFF
     logln("--- stage 4.3a: 40 erase/write/verify rounds, park DISABLED ---");
     logln("  core 1 is running flash-resident code; this is expected to crash");
 #else
@@ -197,7 +197,7 @@ void park_flash_test(void)
 }
 #endif
 
-#if defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
+#if defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
 // Core 0, at boot, before core 1 starts: the PSRAM the workload writes to.
 void park_psram_alloc(void)
 {

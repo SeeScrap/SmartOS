@@ -108,7 +108,7 @@ them rather than growing a fifth copy of a scrolling list, which is what stage
 ## Adding a test
 
 Tests live in `src/tests/`, one file per area, and print one line each. The
-ones that need apps running are inside `#ifdef S3_TEST_APPS` so an ordinary
+ones that need apps running are inside `#ifdef SMARTOS_TEST_APPS` so an ordinary
 build does not carry them.
 
 - Logic that needs no hardware → a new case in `tests/test_ui.cpp` or its

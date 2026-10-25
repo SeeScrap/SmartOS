@@ -2,11 +2,11 @@
 // log (4.5), killing apps (5.2), CPU accounting and the task manager (5.3),
 // minimising (5.5), and the launcher's polish (5.4).
 //
-// Only built with -D S3_TEST_APPS: everything here opens apps.
+// Only built with -D SMARTOS_TEST_APPS: everything here opens apps.
 
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -970,4 +970,4 @@ void sys54_polish_test(void)
     (void)home;
 }
 
-#endif   // S3_TEST_APPS
+#endif   // SMARTOS_TEST_APPS

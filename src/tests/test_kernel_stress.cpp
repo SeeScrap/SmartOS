@@ -1,10 +1,10 @@
 // The stress and regression builds: the three arrangements that each exist to
 // reproduce one specific failure, and only compile when asked for.
 //
-//   -D S3_TEST_SLEEP_CLAIM   the scheduler race found while verifying -O2:
+//   -D SMARTOS_TEST_SLEEP_CLAIM   the scheduler race found while verifying -O2:
 //                            two cores claiming the same sleeping task
-//   -D S3_TEST_MBOX_STRESS   four posters hammering the cross-core mailbox
-//   -D S3_TEST_EVBUS         the event bus under load, with a stalled
+//   -D SMARTOS_TEST_MBOX_STRESS   four posters hammering the cross-core mailbox
+//   -D SMARTOS_TEST_EVBUS         the event bus under load, with a stalled
 //                            subscriber and a timer watching for lateness
 //
 // They were in main.cpp until R2b of the SmartOS restructuring; nothing about
@@ -24,7 +24,7 @@
 #include "kernel/ktime.h"
 #include "os/evbus.h"
 
-#ifdef S3_TEST_SLEEP_CLAIM
+#ifdef SMARTOS_TEST_SLEEP_CLAIM
 // Regression test for a scheduler race found while verifying the -O2 switch.
 //
 // A task that sleeps with nothing else to run on its core does not switch
@@ -66,7 +66,7 @@ static void IRAM_ATTR claim_task(void *arg)
 }
 #endif
 
-#ifdef S3_TEST_MBOX_STRESS
+#ifdef SMARTOS_TEST_MBOX_STRESS
 // Stage 4.1 - four posters, free to run on either core, all hammering the
 // mailbox at once.
 //
@@ -152,7 +152,7 @@ static void IRAM_ATTR mbox_stress_task(void *arg)
 }
 #endif
 
-#ifdef S3_TEST_EVBUS
+#ifdef SMARTOS_TEST_EVBUS
 // Stage 4.2b - the bus under real load, with the kernel running.
 //
 //   - one publisher pinned to each core, 2000 events each, at the same time
@@ -317,7 +317,7 @@ static void IRAM_ATTR bus_timer_check_task(void *arg)
 // cpu0_idle_task stays in main.cpp and is created after these, exactly as
 // before: task ids follow creation order.
 
-#ifdef S3_TEST_SLEEP_CLAIM
+#ifdef SMARTOS_TEST_SLEEP_CLAIM
 // One sleeper free to run anywhere, alone on core 1, and core 0 inside the
 // scheduler beside it - the exact arrangement the race needs.
 void IRAM_ATTR kernel_claim_start(void)
@@ -326,7 +326,7 @@ void IRAM_ATTR kernel_claim_start(void)
 }
 #endif
 
-#ifdef S3_TEST_MBOX_STRESS
+#ifdef SMARTOS_TEST_MBOX_STRESS
 // Two posters pinned to each core. Left free, they all end up posting from
 // core 1: core 0 only serves the mailbox while it is OUT of the kernel, so
 // core 1 is always the one to see an answer land and post the next job.
@@ -339,7 +339,7 @@ void IRAM_ATTR kernel_mbox_stress_start(void)
 }
 #endif
 
-#ifdef S3_TEST_EVBUS
+#ifdef SMARTOS_TEST_EVBUS
 void IRAM_ATTR kernel_evbus_stress_start(void)
 {
     for (int i = 0; i < 16; ++i) k_task_create("filler", bus_filler_task, nullptr);

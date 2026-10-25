@@ -2,7 +2,7 @@
 
     python tools/boot_check.py                     check against the baseline
     python tools/boot_check.py --save              write the baseline instead
-    python tools/boot_check.py --baseline F --save for the -D S3_TEST_APPS build
+    python tools/boot_check.py --baseline F --save for the -D SMARTOS_TEST_APPS build
 
 Resets the board, captures the boot log up to the shell's first prompt, and
 counts every line the test harness printed. Prints one summary line:

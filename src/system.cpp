@@ -109,7 +109,7 @@ void system_loop(void)
     s_status_sub = evbus_subscribe("status", EV_MASK(EV_SYS), EV_Q(status_q));
     evbus_timer_start(s_status_sub, 1000, 1);   // the clock in the corner
 
-#ifndef S3_KERNEL_TEST_BUILD
+#ifndef SMARTOS_KERNEL_TEST_BUILD
     // Stage 6.1: the boot screen has been up since the panel was lit. It is
     // held to its minimum HERE, before the status bar is drawn - the first
     // version cleared the screen and drew the bar first, so the mark was wiped
@@ -128,7 +128,7 @@ void system_loop(void)
     // of the scene. Core 1 is already running, and kmbox_call() gives up after
     // KMBOX_TIMEOUT_MS, so leaving the mailbox unserved for this long is the
     // one thing that would really break.
-#if !defined(S3_GFX_SELFTEST) && GFX_DEMO_HOLD_MS > 0
+#if !defined(SMARTOS_GFX_SELFTEST) && GFX_DEMO_HOLD_MS > 0
     gfx_demo_scene();
     const int64_t demo_t0 = esp_timer_get_time();
     while ((esp_timer_get_time() - demo_t0) / 1000 < GFX_DEMO_HOLD_MS) {
@@ -142,7 +142,7 @@ void system_loop(void)
     status_draw();
     fb_present(system_fb());
 
-#ifndef S3_KERNEL_TEST_BUILD
+#ifndef SMARTOS_KERNEL_TEST_BUILD
     // At boot only the system starts: Home. Every app waits for the user to
     // open it. (Until stage 4.3d every registered app was started here.)
     for (int i = 0; i < app_registry_count(); ++i) {
@@ -207,14 +207,14 @@ void system_loop(void)
 
     // The tests below open apps, which only the user should do - so they are
     // a test build now, not part of every boot.
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
     launcher_test();
     {
         const int in = app_start(&app_input);
         const int ct = app_start(&app_counter);
         const int bn = app_start(&app_bounce);
         const int bn2 = app_model_test(in, ct, bn);
-#ifdef S3_TEST_APPHOG
+#ifdef SMARTOS_TEST_APPHOG
         app_hog_test(bn2);
 #else
         (void)bn2;
@@ -233,7 +233,7 @@ void system_loop(void)
     sys62_wallpaper_test();
     sys63_radio_test();
     sys64_keyboard_test();
-#ifdef S3_TEST_FSFULL
+#ifdef SMARTOS_TEST_FSFULL
     sys54d_fsfull_test();
 #endif
 #endif

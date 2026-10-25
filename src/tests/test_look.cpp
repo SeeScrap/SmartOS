@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -173,4 +173,4 @@ void sys64_keyboard_test(void)
     wait_gone(id2, 2000);
 }
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

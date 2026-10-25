@@ -14,7 +14,7 @@
 // now, one file per area, and this is what they share.
 //
 // The default build carries only what runs on every boot - the case printers
-// and the pump. The suites that open apps are inside `#ifdef S3_TEST_APPS` in
+// and the pump. The suites that open apps are inside `#ifdef SMARTOS_TEST_APPS` in
 // their own files, so they cost the default firmware nothing.
 //
 // BUTTONS, WITHOUT HANDS

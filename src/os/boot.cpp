@@ -104,8 +104,8 @@ static void paint(fb_t *fb, bool all)
     if (all) {
         fb_clear(fb, BG);
         draw_mark(fb);
-        const int tw = fb_text_width("Project S3", 2);
-        fb_text(fb, s_cx - tw / 2, s_logo_y + 76, "Project S3", NAME, 2);
+        const int tw = fb_text_width("SmartOS", 2);
+        fb_text(fb, s_cx - tw / 2, s_logo_y + 76, "SmartOS", NAME, 2);
     }
     draw_spinner(fb);
     draw_what(fb);

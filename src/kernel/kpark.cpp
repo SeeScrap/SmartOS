@@ -72,7 +72,7 @@ IRAM_ATTR void kpark_isr(void)
 
 bool kpark_begin(uint32_t timeout_us)
 {
-#ifdef S3_TEST_PARK_OFF
+#ifdef SMARTOS_TEST_PARK_OFF
     // The proof build: parking switched off everywhere, the global hook
     // included, so the test can show what happens without it.
     (void)timeout_us;
@@ -115,7 +115,7 @@ bool kpark_begin(uint32_t timeout_us)
 
 void kpark_end(void)
 {
-#ifdef S3_TEST_PARK_OFF
+#ifdef SMARTOS_TEST_PARK_OFF
     return;
 #endif
     if (s_depth == 0) return;           // unbalanced; ignore rather than underflow

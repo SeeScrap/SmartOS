@@ -1,8 +1,9 @@
 #pragma once
 
 #include "smartos_config.h"
+
 // ---------------------------------------------------------------------------
-// Project S3 - board pin map
+// SmartOS - board pin map
 // ESP32-S3-DevKitC-1 N16R8 + 2.4" 240x320 SPI TFT (ST7789 or ILI9341) + buttons
 //
 // !! DO NOT USE GPIO 26..37 !!

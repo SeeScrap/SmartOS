@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -33,7 +33,7 @@
 //   the timers     EVBUS_MAX_TIMERS for the whole system
 //   the bus        EVBUS_MAX_SUBS subscriber slots, apps included
 //   the pool       an app whose state the kernel pool cannot hold
-//   the disk       12 MB of LittleFS, filled (-D S3_TEST_FSFULL: minutes)
+//   the disk       12 MB of LittleFS, filled (-D SMARTOS_TEST_FSFULL: minutes)
 //
 // What is claimed is not that these never happen. It is that when they do, the
 // system says which one it was, keeps running, and gives the memory back.
@@ -221,8 +221,8 @@ void sys54e_quiet_test(void)
     }
 }
 
-// --- the filesystem, filled (-D S3_TEST_FSFULL) ------------------------------
-#ifdef S3_TEST_FSFULL
+// --- the filesystem, filled (-D SMARTOS_TEST_FSFULL) ------------------------------
+#ifdef SMARTOS_TEST_FSFULL
 void sys54d_fsfull_test(void)
 {
     logln();
@@ -280,6 +280,6 @@ void sys54d_fsfull_test(void)
              (unsigned long)app_kt_fill_ms());
     sdk_case("deleting gives it back", used2 < used0 + 64 * 1024, d);
 }
-#endif // S3_TEST_FSFULL
+#endif // SMARTOS_TEST_FSFULL
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

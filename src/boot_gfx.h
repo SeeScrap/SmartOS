@@ -20,7 +20,7 @@ void benchmark(void);
 void gfx_bringup(void);
 
 // Four coloured corners and one wide bar - the smallest picture that tells
-// inversion, colour order and rotation apart. -D S3_GFX_SELFTEST.
+// inversion, colour order and rotation apart. -D SMARTOS_GFX_SELFTEST.
 void gfx_selftest(void);
 
 // Every drawing primitive at once, for judging clipping and colour by eye.

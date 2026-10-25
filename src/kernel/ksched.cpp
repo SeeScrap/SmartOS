@@ -259,7 +259,7 @@ static IRAM_ATTR bool any_waiting(void)
 // marks it READY the moment its deadline passes. Until 2026-09-18 that was all
 // the other core needed to claim it and switch to the stack pointer saved at
 // its last real switch: a stale context, and the same task running on both
-// cores at once. S3_TEST_SLEEP_CLAIM reproduced it as a double exception on
+// cores at once. SMARTOS_TEST_SLEEP_CLAIM reproduced it as a double exception on
 // core 0 within the first few sleeps.
 //
 // A core's current task is exactly the one whose stack that core is on - once

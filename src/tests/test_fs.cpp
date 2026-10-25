@@ -1,6 +1,6 @@
 #include "tests/tests.h"
 
-#ifdef S3_TEST_APPS
+#ifdef SMARTOS_TEST_APPS
 
 #include <stdio.h>
 #include <string.h>
@@ -124,4 +124,4 @@ void fs_live_test(void)
     pump(200);
 }
 
-#endif // S3_TEST_APPS
+#endif // SMARTOS_TEST_APPS

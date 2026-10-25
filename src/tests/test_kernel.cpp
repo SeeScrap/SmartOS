@@ -266,7 +266,7 @@ static void IRAM_ATTR consumer_task(void *arg)
 }
 
 
-#ifdef S3_TEST_STACK_OVERFLOW
+#ifdef SMARTOS_TEST_STACK_OVERFLOW
 // Overruns its stack by a measured amount, then reaches a scheduling point so
 // the guard has somewhere to fire.
 //
@@ -348,13 +348,13 @@ void IRAM_ATTR kernel_demo_start(void)
     k_task_create("consumer", consumer_task, nullptr);
 
     // Low: the reporter should genuinely be last, not last by luck.
-#ifdef S3_TEST_STACK_OVERFLOW
+#ifdef SMARTOS_TEST_STACK_OVERFLOW
     k_task_create("overflow", overflow_task, nullptr);
 #endif
     k_task_create_pri("idle", idle_task, nullptr, K_CPU_ANY, K_PRIO_LOW);
 }
 
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
 void IRAM_ATTR kernel_smp_demo_start(void)
 {
     k_task_create("smpA", smp_task, (void *)"smpA");
@@ -362,7 +362,7 @@ void IRAM_ATTR kernel_smp_demo_start(void)
 }
 #endif
 
-#ifdef S3_PREEMPT_SOAK
+#ifdef SMARTOS_PREEMPT_SOAK
 void IRAM_ATTR kernel_soak_start(void)
 {
     k_task_create("soakA", soak_task, (void *)&s_soak_a);

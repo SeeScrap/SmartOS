@@ -465,7 +465,7 @@ void app_poll(void)
                 // Its mailbox slots first: until they are clear, core 0 could
                 // still write an answer into its stack, so the stack must not
                 // go back to the heap - which reaping allows.
-#ifndef S3_TEST_KILL_NOFORGET
+#ifndef SMARTOS_TEST_KILL_NOFORGET
                 const kmbox_forgot_t f = kmbox_forget((uint8_t)c->task, c->task_gen);
 #else
                 const kmbox_forgot_t f = {};    // test only: what skipping it costs

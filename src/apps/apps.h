@@ -44,8 +44,8 @@ int      app_kt_timers_got(void);
 int      app_kt_timers_refused(void);
 uint32_t app_kt_timer_ticks(void);
 
-// Stage 5.4d, -D S3_TEST_FSFULL only: writes until the filesystem is full.
-#ifdef S3_TEST_FSFULL
+// Stage 5.4d, -D SMARTOS_TEST_FSFULL only: writes until the filesystem is full.
+#ifdef SMARTOS_TEST_FSFULL
 extern const app_t app_kt_filler;
 int      app_kt_fill_rc(void);        // what the write that found the end returned
 int      app_kt_fill_small_rc(void);  // one byte, with no room left

@@ -393,7 +393,7 @@ static void text_sheet(void)
 
     fb_fill_rect(&s_fb, 0, 0, s_fb.w, 24, bar);
     fb_hline(&s_fb, 0, 24, s_fb.w, FB_CYAN);
-    fb_text(&s_fb, 6, 2, "Project S3  text 5x8", FB_WHITE, 2);
+    fb_text(&s_fb, 6, 2, "SmartOS  text 5x8", FB_WHITE, 2);
 
     // All 95 glyphs, in code order, split over two lines.
     char set[96];
@@ -411,7 +411,7 @@ static void text_sheet(void)
     fb_text(&s_fb, 4, 80,  "0123456789 +-*/=",  FB_CYAN,  2);
     fb_text(&s_fb, 4, 102, "gjpqy descenders",  FB_GREEN, 2);
 
-    fb_text(&s_fb, 4, 128, "S3 OS", FB_WHITE, 3);
+    fb_text(&s_fb, 4, 128, "SmartOS", FB_WHITE, 3);
 
     // Transparent text over stripes: the stripes must show between the letters.
     for (int i = 0; i < 16; ++i) {

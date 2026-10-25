@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Project S3 - stage 2.0: same bring-up, now on bare ESP-IDF
+// SmartOS - stage 2.0: same bring-up, now on bare ESP-IDF
 //
 // Nothing about what this program checks has changed. What changed is who is
 // underneath it: the Arduino core is gone, so sdkconfig is ours. FreeRTOS is
@@ -9,8 +9,8 @@
 // Builds that replace the kernel's default task set with a test of their own.
 // Apps are not started in these: several of the tests need core 1 to
 // themselves, and none of them create the app manager.
-#if defined(S3_PREEMPT_SOAK) || defined(S3_TEST_SLEEP_CLAIM) ||     defined(S3_TEST_MBOX_STRESS) || defined(S3_TEST_EVBUS) ||     defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
-#define S3_KERNEL_TEST_BUILD 1
+#if defined(SMARTOS_PREEMPT_SOAK) || defined(SMARTOS_TEST_SLEEP_CLAIM) ||     defined(SMARTOS_TEST_MBOX_STRESS) || defined(SMARTOS_TEST_EVBUS) ||     defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
+#define SMARTOS_KERNEL_TEST_BUILD 1
 #endif
 
 #include <stdio.h>
@@ -110,7 +110,7 @@ static void report_memory(void)
     esp_flash_get_size(NULL, &flash_sz);
 
     logln();
-    logln("=== Project S3 / bring-up (ESP-IDF) ===");
+    logln("=== SmartOS / bring-up (ESP-IDF) ===");
     logf("chip      : ESP32-S3 rev %d, %d core(s) @ %d MHz\n",
          info.revision, info.cores, CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ);
     logf("flash     : %lu bytes\n", (unsigned long)flash_sz);
@@ -184,7 +184,7 @@ static void IRAM_ATTR core1_main(void)
 {
     klog("[core1] vector table is ours, faults are recorded not silent\n");
 
-#ifdef S3_TEST_CORE1_FAULT
+#ifdef SMARTOS_TEST_CORE1_FAULT
     klog("[core1] deliberately dereferencing NULL to test the fault path\n");
     volatile uint32_t *boom = (volatile uint32_t *)0;
     (void)*boom;
@@ -196,27 +196,27 @@ static void IRAM_ATTR core1_main(void)
     kpark_init_core1();             // before the tick: interrupts open with it
     k_tick_start(K_TICK_HZ);        // CCOMPARE0, 1 ms, this core only
 
-#ifdef S3_PREEMPT_SOAK
+#ifdef SMARTOS_PREEMPT_SOAK
     // Bisection build: the smallest thing that can prove preemption works.
     kernel_soak_start();        // tests/test_kernel.cpp
-#elif defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
+#elif defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
     // Flash-resident code on core 1, pinned there, never yielding - the
     // workload that needs the park. Preemption keeps the kernel's own tasks
     // running around it.
     kernel_park_work_start();       // tests/test_park.cpp
-#elif defined(S3_TEST_EVBUS)
+#elif defined(SMARTOS_TEST_EVBUS)
     kernel_evbus_stress_start();    // tests/test_kernel_stress.cpp
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
     k_task_create_on("cpu0idle", cpu0_idle_task, nullptr, 0);
 #endif
-#elif defined(S3_TEST_MBOX_STRESS)
+#elif defined(SMARTOS_TEST_MBOX_STRESS)
     kernel_mbox_stress_start();     // tests/test_kernel_stress.cpp
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
     k_task_create_on("cpu0idle", cpu0_idle_task, nullptr, 0);
 #endif
-#elif defined(S3_TEST_SLEEP_CLAIM)
+#elif defined(SMARTOS_TEST_SLEEP_CLAIM)
     kernel_claim_start();           // tests/test_kernel_stress.cpp
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
     k_task_create_on("cpu0idle", cpu0_idle_task, nullptr, 0);
 #endif
 #else
@@ -241,7 +241,7 @@ static void IRAM_ATTR core1_main(void)
         klog("[core1] !! no task slot for the event bus timers\n");
     }
     kernel_demo_start();            // tests/test_kernel.cpp
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
     // Pinned to core 0 so core 1 never picks it up - and deliberately at
     // NORMAL, not a low priority. It is the only thing handing core 0 back to
     // FreeRTOS, so starving it would take the USB console and the flash driver
@@ -258,7 +258,7 @@ static void IRAM_ATTR core1_main(void)
     // On by default now. A task that never yields no longer owns the core: the
     // demo's hog task spins for 200 ms without a single yield while the ticker
     // keeps printing every 25 ms right through it.
-#ifdef S3_ENABLE_PREEMPT
+#ifdef SMARTOS_ENABLE_PREEMPT
     k_preempt_enable();
 #endif
 
@@ -297,11 +297,11 @@ static void wake_core1(void)
 
     if (ok) {
         logln("[core0] core 1 answered - it is running our code now");
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
         // Donate core 0 straight away, while there is still a demo to share.
         // Pinned to core 0 and high priority so the donation actually happens
         // instead of queueing behind IDF's housekeeping.
-        xTaskCreatePinnedToCore(smp_host_task, "s3os_host", 4096, nullptr,
+        xTaskCreatePinnedToCore(smp_host_task, "smartos_host", 4096, nullptr,
                                 10, nullptr, 0);
 #endif
         // Serve core 1's mailbox while its demo runs, and watch for a fault.
@@ -315,7 +315,7 @@ static void wake_core1(void)
             if (kfault_pending()) { kfault_report(); break; }
             hal_delay_ms(2);
         }
-#ifdef S3_ENABLE_SMP
+#ifdef SMARTOS_ENABLE_SMP
         logf("[core0] cpu0idle asked the scheduler %lu times; spin stuck on 0x%08lx\n",
              (unsigned long)s_cpu0_loops, (unsigned long)k_spin_stuck);
 #endif
@@ -390,7 +390,7 @@ extern "C" void app_main(void)
 
     benchmark();
     gfx_bringup();
-#ifdef S3_GFX_SELFTEST
+#ifdef SMARTOS_GFX_SELFTEST
     // Four differently-coloured corners and one wide bar: the smallest picture
     // that separates inversion, colour order and rotation from each other.
     // Keep it - the next panel will need it too.
@@ -464,14 +464,14 @@ extern "C" void app_main(void)
     // The kernel starts only now. Measuring the display first keeps core 0 to
     // ourselves for the benchmark - once k_smp_join runs, core 0 is shared with
     // whatever the scheduler puts there and the numbers stop meaning anything.
-#if defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
+#if defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
     park_psram_alloc();             // tests/test_park.cpp owns the buffer
 #endif
 
     boot_step("the kernel on core 1");
     wake_core1();
 
-#if defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
+#if defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
     park_flash_test();
 #endif
     park_smoke_test();
@@ -518,7 +518,7 @@ extern "C" void app_main(void)
         fs_print_tree();
     }
 
-#ifdef S3_TEST_PANIC_REBOOT
+#ifdef SMARTOS_TEST_PANIC_REBOOT
     // Crash core 0 on purpose while core 1 is running, and check the boot
     // after it. A marker file makes it crash exactly once: written just before
     // the crash, found - and removed - by the boot that follows. Without the

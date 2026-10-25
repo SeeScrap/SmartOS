@@ -42,7 +42,7 @@ IRAM_ATTR int kmbox_post(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2)
         // A cheap look first, so a full scan does not hammer the bus with
         // atomics on slots that are obviously taken.
         if (s_slots[i].state != KMB_EMPTY) continue;
-#ifdef S3_TEST_MBOX_STRESS
+#ifdef SMARTOS_TEST_MBOX_STRESS
         esp_rom_delay_us(20);    // test only: hold the race window open
 #endif
         // The look is only a hint. Another poster - on the other core, or on

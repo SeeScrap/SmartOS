@@ -12,7 +12,7 @@
 # as after a build_flags change. CONFIGURE_DEPENDS would automate that, but
 # ESP-IDF also reads this file in CMake script mode to work out requirements,
 # and CONFIGURE_DEPENDS is an error there.
-file(GLOB S3_APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/apps/*.cpp")
+file(GLOB SMARTOS_APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/apps/*.cpp")
 
 idf_component_register(
     SRCS
@@ -68,7 +68,7 @@ idf_component_register(
         "kernel/kmbox.cpp"
         "kernel/kpark.cpp"
         "kernel/ksync.cpp"
-        ${S3_APP_SRCS}
+        ${SMARTOS_APP_SRCS}
     INCLUDE_DIRS "." "../include"
     REQUIRES
         driver          # spi_master, gpio
