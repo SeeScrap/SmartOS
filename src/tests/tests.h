@@ -70,3 +70,11 @@ void kernel_mbox_stress_start(void);
 #ifdef S3_TEST_EVBUS
 void kernel_evbus_stress_start(void);
 #endif
+
+// Parking core 1 around flash (tests/test_park.cpp).
+void park_smoke_test(void);       // 100 reads, every boot
+#if defined(S3_TEST_PARK) || defined(S3_TEST_PARK_OFF)
+void park_flash_test(void);       // 40 erase/write/verify rounds
+void kernel_park_work_start(void);
+void park_psram_alloc(void);      // core 0, before core 1 starts
+#endif
