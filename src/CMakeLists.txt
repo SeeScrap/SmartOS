@@ -18,6 +18,7 @@ idf_component_register(
     SRCS
         "main.cpp"
         "tests/harness.cpp"
+        "tests/test_kernel.cpp"
         "tests/test_input.cpp"
         "tests/test_evbus.cpp"
         "tests/test_gfx.cpp"

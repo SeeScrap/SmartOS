@@ -9,6 +9,7 @@
 #define S3_TEST_APPS 1
 #endif
 
+
 // ---------------------------------------------------------------------------
 // Stage 5.4b - the test suites, one file each in src/tests/.
 //
@@ -46,4 +47,15 @@ void sys63_radio_test(void);      // the radio: what it is, what it costs, one s
 void sys64_keyboard_test(void);   // typing on the board, and keeping it
 #ifdef S3_TEST_FSFULL
 void sys54d_fsfull_test(void);    // the filesystem, filled (minutes)
+#endif
+
+// The stage 2 kernel demo (tests/test_kernel.cpp), started by core1_main.
+// Three calls rather than one: task ids follow creation order, and core 1's
+// own cpu0idle task is created between the demo and its SMP pair.
+void kernel_demo_start(void);
+#ifdef S3_ENABLE_SMP
+void kernel_smp_demo_start(void);
+#endif
+#ifdef S3_PREEMPT_SOAK
+void kernel_soak_start(void);
 #endif
