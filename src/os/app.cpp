@@ -215,6 +215,35 @@ bool app_register(const app_t *app, int order)
     return true;
 }
 
+// Stage 7: an installed app leaves the registry when it is uninstalled. A
+// built-in one never does - it is in the firmware - so this only ever moves
+// an entry that arrived at run time.
+bool app_unregister(const app_t *app)
+{
+    for (int i = 0; i < s_reg_n; ++i) {
+        if (s_reg[i] != app) continue;
+        for (int k = i; k + 1 < s_reg_n; ++k) {
+            s_reg[k]       = s_reg[k + 1];
+            s_reg_order[k] = s_reg_order[k + 1];
+        }
+        s_reg_n--;
+        return true;
+    }
+    return false;
+}
+
+// Uninstalling an app that is still running would free the memory its task is
+// executing out of, so the caller asks first.
+bool app_is_open(const char *name)
+{
+    if (!name) return false;
+    for (int i = 0; i < APP_MAX; ++i) {
+        if (s_used[i] == SLOT_FREE) continue;
+        if (s_ctx[i].app && strcmp(s_ctx[i].app->name, name) == 0) return true;
+    }
+    return false;
+}
+
 int app_registry_count(void) { return s_reg_n; }
 
 const app_t *app_registry_at(int i)

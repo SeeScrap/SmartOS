@@ -255,6 +255,16 @@ uint16_t app_bg(void);
 // runs. The number is the app's place in Home's list. Registering an app does
 // not start it: only the user does that, from Home.
 bool         app_register(const app_t *app, int order);
+
+// Takes one back out again (stage 7). Only an installed app is ever
+// unregistered - a built-in one is in the firmware and cannot leave - so this
+// is how uninstalling works. Refuses nothing: the caller has already checked
+// that the app is closed.
+bool         app_unregister(const app_t *app);
+
+// Is that app running right now? Uninstalling one that is would leave the
+// runtime holding a pointer into memory about to be freed.
+bool         app_is_open(const char *name);
 int          app_registry_count(void);
 const app_t *app_registry_at(int i);           // in order
 const app_t *app_find(const char *name);

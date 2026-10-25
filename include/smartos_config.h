@@ -269,6 +269,18 @@
 #endif
 
 
+// How many instructions an installed app may execute in one callback before
+// the machine stops it. At about 3.4 million instructions a second, 20000 is
+// six milliseconds - far more than a draw() needs and far less than the time
+// a frame has. An app that reaches it is not slow, it is stuck.
+//
+// This is the whole of what keeps an installed app from hanging the board,
+// and it is why one can be allowed to run at all. See os/vm.h.
+#ifndef VM_BUDGET_PER_CALL
+#define VM_BUDGET_PER_CALL 20000
+#endif
+
+
 // ===========================================================================
 // 7. THE EVENT BUS / บัสเหตุการณ์                           (os/evbus.h)
 // ===========================================================================

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "esp_heap_caps.h"
 #include "esp_system.h"
@@ -14,6 +15,7 @@
 #include "kernel/ktask.h"
 #include "gfx/fb.h"
 #include "os/app.h"
+#include "os/appload.h"
 #include "os/boot.h"
 #include "os/radio.h"
 #include "system.h"
@@ -421,6 +423,129 @@ static void cmd_close(int argc, char **argv)
     slog("shell", "close %s (id %d)", a->name, id);
 }
 
+// --- stage 7: installing an app -------------------------------------------
+//
+// The file arrives as base64, in lines, because the shell is a line protocol
+// and tools/shell_test.py already drives it. A binary mode would be faster
+// and would cost the whole of that: an app is a few hundred bytes, and a few
+// hundred bytes of base64 over USB is not worth a second protocol.
+//
+// ไฟล์มาเป็น base64 ทีละบรรทัด เพราะเชลล์เป็นโปรโตคอลบรรทัด และเครื่องมือ
+// ทดสอบที่มีอยู่ขับมันได้ทันที โหมดไบนารีจะเร็วกว่าแต่ต้องทิ้งเครื่องมือทั้งชุด
+
+static FILE    *s_rx;
+static char     s_rx_name[APPLOAD_NAME_MAX];
+static uint32_t s_rx_left;
+
+static int b64val(char c)
+{
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return c - 'a' + 26;
+    if (c >= '0' && c <= '9') return c - '0' + 52;
+    if (c == '+') return 62;
+    if (c == '/') return 63;
+    return (c == '=') ? -2 : -1;
+}
+
+bool shell_rx_active(void) { return s_rx != nullptr; }
+
+// One line while an install is in progress. Returns false if there is no
+// install going on, in which case the line is an ordinary command.
+bool shell_rx_line(const char *line)
+{
+    if (!s_rx) return false;
+
+    if (strcmp(line, "end") == 0) {
+        fclose(s_rx);
+        s_rx = nullptr;
+        if (s_rx_left != 0) {
+            logf("  %lu byte(s) short - not installed\n", (unsigned long)s_rx_left);
+            return true;
+        }
+        // Installing over something already installed is how a newer
+        // version arrives, so the old one is forgotten first rather than
+        // the new one being refused. appload_forget says no if the app is
+        // open, and then so does the load.
+        const bool was = (appload_forget(s_rx_name) || true);
+        (void)was;
+        if (appload_one(s_rx_name)) {
+            logf("  %s installed; it is in Home now\n", s_rx_name);
+            slog("shell", "installed %s", s_rx_name);
+        } else {
+            logf("  refused: %s\n", appload_last_error());
+        }
+        return true;
+    }
+
+    uint8_t out[3];
+    int have = 0, bits = 0, acc = 0;
+    for (const char *c = line; *c; ++c) {
+        const int v = b64val(*c);
+        if (v == -1) continue;              // whitespace and the like
+        if (v == -2) break;                 // padding: the end of the data
+        acc = (acc << 6) | v;
+        bits += 6;
+        if (bits >= 8) {
+            bits -= 8;
+            out[have++] = (uint8_t)((acc >> bits) & 0xFF);
+            if (have == 3) {
+                const uint32_t n = (s_rx_left < 3) ? s_rx_left : 3;
+                fwrite(out, 1, n, s_rx);
+                s_rx_left -= n;
+                have = 0;
+            }
+        }
+    }
+    if (have) {
+        const uint32_t n = (s_rx_left < (uint32_t)have) ? s_rx_left : (uint32_t)have;
+        fwrite(out, 1, n, s_rx);
+        s_rx_left -= n;
+    }
+    return true;
+}
+
+static void cmd_install(int argc, char **argv)
+{
+    if (argc < 3) {
+        logf("  install <name> <bytes>, then base64 lines, then a line: end\n");
+        return;
+    }
+    if (s_rx) { fclose(s_rx); s_rx = nullptr; }     // an install that stalled
+
+    const uint32_t n = (uint32_t)strtoul(argv[2], nullptr, 10);
+    if (n == 0 || n > 65536) { logf("  that size is not believable\n"); return; }
+
+    mkdir("/fs/installed", 0775);
+    char path[96];
+    snprintf(path, sizeof(path), "/fs/installed/%s.app", argv[1]);
+    s_rx = fopen(path, "wb");
+    if (!s_rx) { logf("  cannot write %s\n", path); return; }
+
+    snprintf(s_rx_name, sizeof(s_rx_name), "%s", argv[1]);
+    s_rx_left = n;
+    logf("  send %lu bytes as base64 lines, then a line saying: end\n", (unsigned long)n);
+}
+
+static void cmd_uninstall(int argc, char **argv)
+{
+    if (argc < 2) { logf("  uninstall <app>\n"); return; }
+    if (!appload_forget(argv[1])) { logf("  %s\n", appload_last_error()); return; }
+    char path[96];
+    snprintf(path, sizeof(path), "/fs/installed/%s.app", argv[1]);
+    unlink(path);
+    logf("  %s uninstalled, and its file is gone\n", argv[1]);
+    slog("shell", "uninstalled %s", argv[1]);
+}
+
+static void cmd_apps(int, char **)
+{
+    logf("  %d installed app(s), %lu B of the kernel pool\n",
+         appload_count(), (unsigned long)appload_bytes());
+    for (int i = 0; i < appload_count(); ++i) {
+        logf("    %s\n", appload_name_at(i));
+    }
+}
+
 static void cmd_kill(int argc, char **argv)
 {
     if (argc < 2) { logf("  kill <app>   (close asks; kill does not)\n"); return; }
@@ -554,6 +679,9 @@ static const cmd_t s_cmds[] = {
     { "cat",    "path",          "a file under /fs",                           cmd_cat    },
     { "open",   "app",           "open an app and bring it to the front",      cmd_open   },
     { "close",  "app",           "ask an app to close (killed if it ignores that)", cmd_close },
+    { "install","name bytes",    "install an app: base64 lines, then 'end'",   cmd_install },
+    { "uninstall","app",         "remove an installed app and its file",       cmd_uninstall },
+    { "apps",   "",              "apps the user installed",                    cmd_apps   },
     { "kill",   "app",           "end an app now, whatever it is doing",       cmd_kill   },
     { "set",    "[key value]",   "list the settings, or change one",           cmd_set    },
     { "key",    "btn...",        "tap buttons: up down left right ok back",    cmd_key    },
@@ -575,6 +703,12 @@ static void cmd_help(int, char **)
 
 static void run(char *line)
 {
+    // Stage 7: while an app is being installed, a line is a line of its
+    // file rather than a command. Checked before anything is parsed, so a
+    // line of base64 that happens to start with a command's name is still
+    // just data.
+    if (shell_rx_line(line)) return;
+
     char *argv[MAX_ARGS];
     int argc = 0;
     for (char *p = strtok(line, " \t"); p; p = strtok(nullptr, " \t")) {
@@ -608,20 +742,38 @@ void shell_poll(void)
             if (ch == '\r' || ch == '\n') {
                 if (ch == '\n' && last == '\r') continue;     // one Enter, not two
                 logf("\n");
+                bool was_data = false;
                 if (s_overflow) {
                     logf("  line too long (at most %d characters)\n", SHELL_LINE - 1);
                 } else {
                     s_line[s_len] = 0;
+                    was_data = shell_rx_active();
                     run(s_line);
                 }
                 s_len = 0;
                 s_overflow = false;
-                logf(PROMPT);
+                // Stage 7: no prompt for a line that was part of a file.
+                //
+                // A prompt per line is right for a person typing and wrong
+                // for a program streaming: the sender would have to read one
+                // back after every line, or they pile up and it matches an
+                // old one instead of the answer it is waiting for. Found
+                // that way on the first install.
+                //
+                // The condition is "was this line data", not "is a transfer
+                // going on". The install command itself and the "end" that
+                // closes one are commands and get their prompt - suppressing
+                // those was the second thing found, when the sender then
+                // waited for a prompt that was never coming.
+                if (!was_data || !shell_rx_active()) logf(PROMPT);
                 push();
             } else if (ch == '\b' || ch == 0x7F) {
                 if (s_len && !s_overflow) { s_len--; logf("\b \b"); push(); }
             } else if (ch >= ' ' && ch < 0x7F) {
-                if (s_len < SHELL_LINE - 1) { s_line[s_len++] = ch; logf("%c", ch); push(); }
+                if (s_len < SHELL_LINE - 1) {
+                    s_line[s_len++] = ch;
+                    if (!shell_rx_active()) { logf("%c", ch); push(); }
+                }
                 else s_overflow = true;
             }
             // anything else - escape sequences, arrows - is ignored

@@ -25,6 +25,7 @@
 #include "kernel/ktime.h"
 #include "apps/apps.h"
 #include "os/app.h"
+#include "os/appload.h"
 #include "os/boot.h"
 #include "os/evbus.h"
 #include "os/fs.h"
@@ -144,6 +145,11 @@ void system_loop(void)
     fb_present(system_fb());
 
 #ifndef SMARTOS_KERNEL_TEST_BUILD
+    // Stage 7: apps the user installed. They register themselves here, before
+    // Home is started, so by the time anything reads the registry they are in
+    // it - exactly as if they had been compiled in.
+    appload_scan();
+
     // At boot only the system starts: Home. Every app waits for the user to
     // open it. (Until stage 4.3d every registered app was started here.)
     for (int i = 0; i < app_registry_count(); ++i) {

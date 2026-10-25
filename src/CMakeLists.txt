@@ -48,6 +48,7 @@ idf_component_register(
         "os/evbus.cpp"
         "os/vm.cpp"
         "os/vm_sys.cpp"
+        "os/appload.cpp"
         "os/krand.cpp"
         "os/app.cpp"
         "os/boot.cpp"
