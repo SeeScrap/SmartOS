@@ -4,7 +4,6 @@
 
 #include "smartos_config.h"
 
-#include "kernel/ksync.h"
 
 // ---------------------------------------------------------------------------
 // Stage 4.2 - the system event bus.

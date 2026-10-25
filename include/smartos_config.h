@@ -371,6 +371,23 @@
 // 13. THE CHIP / ตัวชิป
 // ===========================================================================
 
+// The version of the application interface - everything reachable from
+// include/smartos_app.h. Stage 7 installs apps that were built separately
+// from the operating system, and the loader refuses a file built against a
+// different number rather than running it and crashing later.
+//
+// Raise it whenever something in smartos_app.h changes in a way that would
+// break an app built before the change: a function removed or renamed, a
+// signature altered, a struct's fields reordered or resized. Adding a new
+// function is not such a change.
+//
+// รุ่นของอินเทอร์เฟซสำหรับแอปพลิเคชัน ตัวโหลดใน stage 7 จะปฏิเสธไฟล์ที่สร้างมา
+// จากเลขคนละรุ่น แทนที่จะรันแล้วพังทีหลัง เพิ่มเลขนี้เมื่อมีอะไรใน
+// smartos_app.h เปลี่ยนจนแอปที่สร้างไว้ก่อนหน้าใช้ไม่ได้
+#ifndef SMARTOS_ABI_VERSION
+#define SMARTOS_ABI_VERSION 1
+#endif
+
 // The CPU clock, in MHz. CCOUNT advances at this rate, so anything that turns
 // cycles into time divides by it.
 //
