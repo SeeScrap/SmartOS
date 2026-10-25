@@ -242,35 +242,3 @@ void benchmark(void)
     lcd_bus_set_mode(LCD_XFER_QUEUED);
 }
 
-static void draw_test_pattern(void)
-{
-    lcd_fill_screen(COLOR_BLACK);
-
-    const uint16_t bars[] = {
-        COLOR_RED, COLOR_GREEN, COLOR_BLUE, COLOR_WHITE,
-        COLOR_YELLOW, COLOR_CYAN, COLOR_MAGENTA
-    };
-    const int n = sizeof(bars) / sizeof(bars[0]);
-    uint16_t bw = lcd_width() / n;
-    for (int i = 0; i < n; ++i) {
-        lcd_fill_rect(i * bw, 0, bw, 60, bars[i]);
-    }
-
-    // Corner markers - if these land in the right corners, rotation is right.
-    lcd_fill_rect(0, 0, 16, 16, COLOR_WHITE);
-    lcd_fill_rect(lcd_width() - 16, lcd_height() - 16, 16, 16, COLOR_WHITE);
-}
-
-// Lights up a box for each button so the wiring can be checked on the panel
-// itself, without watching the serial log.
-static void draw_button_state(uint32_t held)
-{
-    struct { uint32_t bit; uint16_t x, y; } slots[] = {
-        { BTN_UP,     140, 140 }, { BTN_DOWN,  140, 220 },
-        { BTN_LEFT,    80, 180 }, { BTN_RIGHT, 200, 180 },
-        { BTN_OK,     320, 180 }, { BTN_BACK,  390, 180 },
-    };
-    for (auto &s : slots) {
-        lcd_fill_rect(s.x, s.y, 56, 56, (held & s.bit) ? COLOR_GREEN : RGB565(40, 40, 40));
-    }
-}
