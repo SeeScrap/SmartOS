@@ -84,3 +84,9 @@ void park_psram_alloc(void);      // core 0, before core 1 starts
 #ifdef SMARTOS_TEST_LOADER
 void loader_probe_test(void);
 #endif
+
+// Stage 7b (tests/test_vm.cpp): the machine installed apps run on, and every
+// guard that makes running them safe.
+#ifdef SMARTOS_TEST_VM
+void vm_logic_test(void);
+#endif
