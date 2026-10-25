@@ -26,3 +26,8 @@ __pycache__/
 *.zip
 Thumbs.db
 .DS_Store
+
+# The example is its own PlatformIO project, so it has its own build folder.
+examples/*/.pio/
+examples/*/sdkconfig.*
+!examples/*/sdkconfig.defaults

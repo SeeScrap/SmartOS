@@ -52,8 +52,13 @@ def case_name(text):
 DEFAULT_BASELINE = "tools/baseline_default.txt"
 
 
-def capture(timeout):
-    """(boot log, seconds to the prompt) or (None, elapsed) if it never came."""
+def capture(timeout, until=None):
+    """(boot log, seconds to the end marker) or (None, elapsed) on timeout.
+
+    `until` is what to stop at. The default is the shell coming up, which is
+    how the operating system's own build ends its boot. A program that has no
+    shell - examples/kernel_blink, say - passes its own last line instead.
+    """
     port = find_port()
     if not port:
         print("no board found on any serial port")
@@ -62,12 +67,13 @@ def capture(timeout):
     print(f"port {port} ({port_kind(port)})")
     b.reset()
     t0 = time.time()
-    log = b.read_until(b"[shell] type help", timeout)
+    marker = until.encode() if until else b"[shell] type help"
+    log = b.read_until(marker, timeout)
     if log is None:
-        print(f"the shell never came up in {timeout} s; last bytes seen:")
+        print(f"{marker.decode()!r} never appeared in {timeout} s; last bytes seen:")
         print(b.buf[-400:].decode(errors="replace"))
         return None, time.time() - t0
-    tail = b.read_until(PROMPT, 5) or b""
+    tail = b"" if until else (b.read_until(PROMPT, 5) or b"")
     return (log + tail).decode(errors="replace"), time.time() - t0
 
 
@@ -94,10 +100,11 @@ def main():
     p.add_argument("--baseline", default=DEFAULT_BASELINE)
     p.add_argument("--save", action="store_true", help="write the baseline")
     p.add_argument("--timeout", type=float, default=120.0)
+    p.add_argument("--until", help="stop at this line instead of the shell prompt")
     p.add_argument("--log", help="also write the raw boot log here")
     a = p.parse_args()
 
-    log, secs = capture(a.timeout)
+    log, secs = capture(a.timeout, a.until)
     if log is None:
         return 1
     if a.log:
@@ -127,7 +134,7 @@ def main():
 
     missing, new = differences(names, base)
     print(f"PASS {len(found) - len(failed)} FAIL {len(failed)}  "
-          f"missing: {missing}  new: {new}   ({secs:.1f} s to the prompt)")
+          f"missing: {missing}  new: {new}   ({secs:.1f} s)")
     for n in failed:
         print(f"  FAIL  {n}")
     return len(failed) + (missing != "-") + (new != "-")

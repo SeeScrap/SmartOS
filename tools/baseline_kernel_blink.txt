@@ -1,0 +1,5 @@
+two tasks, one mutex
+the tick wakes a sleeper
+a task drove a pin
+the kernel heap
+no task overran its stack
