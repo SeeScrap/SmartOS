@@ -8,6 +8,7 @@
 #include "board/log.h"
 #include "kernel/ktime.h"
 #include "os/vm.h"
+#include "os/vm_sys.h"
 #include "tests/harness.h"
 
 // ---------------------------------------------------------------------------
@@ -172,6 +173,65 @@ void vm_logic_test(void)
     static const uint8_t g_deep[] = { 0x33,0,0,0,0, 0x34 };
     sdk_case("recursing without end",
              stopped(g_deep, sizeof(g_deep), VM_ERR_DEPTH, d, sizeof(d)), d);
+
+    // --- the bridge to the operating system (stage 7c) ---------------------
+    //
+    // The real syscall table, called the way an app calls it. No framebuffer
+    // is set, which is how an app outside draw() sees the world - so every
+    // drawing call here must be refused, not quietly dropped.
+    {
+        // Three strings end to end, the way a loader lays an app's blob out:
+        // each NUL-terminated, and an app refers to one by its offset. Written
+        // as an array because a string literal with NULs inside it is a
+        // warning this build treats as an error.
+        static const char blob[] = {
+            'h','e','l','l','o', 0,                                             //  0
+            'p','r','e','s','s','e','d',' ','%','d',' ','t','i','m','e','s', 0, //  6
+            'b','a','c','k','l','i','g','h','t', 0,                             // 23
+        };
+        static vm_app_t ctx = {};
+        vm_program_t p = prog(nullptr, 0);
+        p.strings     = blob;
+        p.strings_len = sizeof(blob);
+        ctx.prog      = &p;
+        ctx.fb        = nullptr;
+        const vm_syscalls_t sys = { vm_sys_table(), vm_sys_count(), &ctx };
+
+        vm_err_t e = VM_OK;
+        const int32_t w = sys.table[VMSYS_WIDTH](&ctx, nullptr, 0, &e);
+        const int32_t h = sys.table[VMSYS_HEIGHT](&ctx, nullptr, 0, &e);
+        snprintf(d, sizeof(d), "%d calls in the table; width %ld, height %ld",
+                 (int)vm_sys_count(), (long)w, (long)h);
+        sdk_case("the system call table", e == VM_OK && w == LCD_WIDTH && h == APP_AREA_H, d);
+
+        // Formatting: the app hands an offset into its own string blob.
+        const int32_t fargs[4] = { 6, 3, 0, 0 };        // "pressed %d times", 3
+        e = VM_OK;
+        const int32_t hdl = sys.table[VMSYS_FMT](&ctx, fargs, 4, &e);
+        const char *made = (hdl < 0 && -hdl - 1 < VM_SCRATCH_SLOTS) ? ctx.scratch[-hdl - 1] : "?";
+        snprintf(d, sizeof(d), "handle %ld -> \"%s\"", (long)hdl, made);
+        sdk_case("formatting a string", e == VM_OK && strcmp(made, "pressed 3 times") == 0, d);
+
+        // Drawing with no framebuffer: refused.
+        const int32_t targs[5] = { 0, 0, 0, 0, 1 };
+        e = VM_OK;
+        sys.table[VMSYS_TEXT](&ctx, targs, 5, &e);
+        snprintf(d, sizeof(d), "drawing outside draw() gave: %s", vm_err_name(e));
+        sdk_case("drawing when there is no screen", e == VM_ERR_SYSCALL, d);
+
+        // A string handle that points outside the blob.
+        const int32_t bad[2] = { 9999, 1 };
+        e = VM_OK;
+        sys.table[VMSYS_TEXT_WIDTH](&ctx, bad, 2, &e);
+        snprintf(d, sizeof(d), "a handle past the end of its strings gave: %s", vm_err_name(e));
+        sdk_case("a string that is not its own", e == VM_ERR_RANGE, d);
+
+        // The wrong number of arguments.
+        e = VM_OK;
+        sys.table[VMSYS_RGB](&ctx, bad, 2, &e);
+        snprintf(d, sizeof(d), "rgb with 2 arguments instead of 3 gave: %s", vm_err_name(e));
+        sdk_case("a call with the wrong arguments", e == VM_ERR_SYSCALL, d);
+    }
 
     // --- what it costs -----------------------------------------------------
     {
