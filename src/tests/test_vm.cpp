@@ -1,7 +1,5 @@
 #include "tests/tests.h"
 
-#ifdef SMARTOS_TEST_VM
-
 #include <stdio.h>
 #include <string.h>
 
@@ -248,4 +246,3 @@ void vm_logic_test(void)
     }
 }
 
-#endif // SMARTOS_TEST_VM

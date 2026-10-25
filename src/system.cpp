@@ -214,9 +214,8 @@ void system_loop(void)
 
     // The tests below open apps, which only the user should do - so they are
     // a test build now, not part of every boot.
-#ifdef SMARTOS_TEST_VM
     vm_logic_test();
-#endif
+    appload_test();
 
 #ifdef SMARTOS_TEST_LOADER
     loader_probe_test();

@@ -85,8 +85,9 @@ void park_psram_alloc(void);      // core 0, before core 1 starts
 void loader_probe_test(void);
 #endif
 
-// Stage 7b (tests/test_vm.cpp): the machine installed apps run on, and every
-// guard that makes running them safe.
-#ifdef SMARTOS_TEST_VM
+// Stage 7 (tests/test_vm.cpp, tests/test_appload.cpp). Both run on every
+// boot: the machine installed apps run on with every guard that makes
+// running them safe, and the install path itself, with the board installing
+// an app on itself.
 void vm_logic_test(void);
-#endif
+void appload_test(void);

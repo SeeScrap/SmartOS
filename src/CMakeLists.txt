@@ -22,6 +22,7 @@ idf_component_register(
         "tests/harness.cpp"
         "tests/test_loader.cpp"
         "tests/test_vm.cpp"
+        "tests/test_appload.cpp"
         "tests/test_kernel.cpp"
         "tests/test_kernel_stress.cpp"
         "tests/test_park.cpp"

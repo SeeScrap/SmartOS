@@ -46,3 +46,29 @@ settings applied
 boot screen
 boot starts no app
 kernel memory
+arithmetic
+the constant pool
+a loop
+a function call
+a system call
+an instruction it lacks
+reading past its own memory
+jumping out of the program
+taking from an empty stack
+filling the stack
+dividing by zero
+looping for ever
+a system call that does not
+recursing without end
+the system call table
+formatting a string
+drawing when there is no scr
+a string that is not its own
+a call with the wrong argume
+how fast it runs
+an app arrives as a file
+it loads and registers
+it opens, draws and hears a
+it uninstalls cleanly
+rubbish is refused
+another ABI is refused

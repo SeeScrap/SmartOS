@@ -1,0 +1,28 @@
+# The app the board installs on itself, every boot, to check that installing
+# an app still works. It is compiled on a computer and the bytes are embedded
+# in the firmware by tools/mkappblob.py - see src/tests/test_appload.cpp.
+#
+# It does the four things that have to work and nothing else: keep state,
+# count draws, count events, and prove a system call reached the system.
+
+app selftest {
+    order 200
+
+    var draws
+    var events
+    var width_seen
+
+    on init {
+        width_seen = width()
+    }
+
+    on draw {
+        draws = draws + 1
+    }
+
+    on event {
+        if (ev_type == 0) {
+            events = events + 1
+        }
+    }
+}
