@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "esp_heap_caps.h"
+#include "sdkconfig.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -55,3 +58,25 @@ extern "C" void kport_yield_ms(uint32_t ms)
 {
     vTaskDelay(ms / portTICK_PERIOD_MS);
 }
+
+
+// --- memory, once, at boot -------------------------------------------------
+extern "C" void *kport_region_alloc(size_t align, size_t bytes, bool psram)
+{
+    const uint32_t caps = (psram ? MALLOC_CAP_SPIRAM : MALLOC_CAP_INTERNAL) | MALLOC_CAP_8BIT;
+    return heap_caps_aligned_alloc(align, bytes, caps);
+}
+
+extern "C" size_t kport_largest_free_internal(void)
+{
+    return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+}
+
+// ESP-IDF owns the CPU clock setting and the kernel keeps its own copy of it
+// in smartos_config.h, because three places outside the kernel divide CCOUNT
+// cycles by it. This is the one translation unit that should see both, so the
+// check that they agree lives here. It was in kernel/ktime.cpp until R4d, and
+// it was the last reason that file included sdkconfig.h.
+static_assert(K_CPU_MHZ == CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ,
+              "K_CPU_MHZ in smartos_config.h disagrees with "
+              "CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ in sdkconfig - make them match");

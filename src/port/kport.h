@@ -35,9 +35,11 @@
 // ---------------------------------------------------------------------------
 
 #include <stdarg.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "esp_attr.h"
+#include "esp_cpu.h"
 #include "esp_rom_sys.h"
 
 #include "smartos_config.h"
@@ -91,3 +93,23 @@ static inline void kport_delay_us(uint32_t us) { esp_rom_delay_us(us); }
 // K_JOB_SLEEP handler is the caller - core 1 asks core 0 to wait, precisely
 // because core 1 cannot wait this way itself.
 extern "C" void kport_yield_ms(uint32_t ms);
+
+
+// --- which core is asking ---------------------------------------------------
+// The scheduler indexes its per-core table with this, on every pass, so it is
+// inline and stays inline: on this chip it is one special-register read.
+static inline uint32_t kport_core_id(void) { return esp_cpu_get_core_id(); }
+
+
+// --- memory, once, at boot --------------------------------------------------
+// The kernel's heap is two regions taken from ESP-IDF before core 1 starts,
+// and never spoken to again - from then on the kernel is its own allocator.
+// These two are the only reason kernel/kheap.cpp ever touches the chip.
+//
+// Deliberately primitives and not "give me a heap": how much to ask for, how
+// far to climb down when the radio has already taken the internal heap, and
+// what to settle for are the kernel's decisions. The chip only hands out
+// memory. CORE 0 ONLY, before core 1 runs - IDF's allocator takes FreeRTOS
+// locks that core 1 has no task to block on.
+extern "C" void  *kport_region_alloc(size_t align, size_t bytes, bool psram);
+extern "C" size_t kport_largest_free_internal(void);

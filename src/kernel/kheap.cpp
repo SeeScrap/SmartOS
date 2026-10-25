@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "port/kport.h"
-#include "esp_heap_caps.h"
 #include "kernel/klog.h"
 #include "kernel/ktask.h"
 
@@ -88,14 +87,13 @@ static K_IRAM void pool_init(kpool_t *pl, uint8_t *base, size_t size)
 // kheap_stats reports, and the boot line says so.
 static size_t reserve_internal(void)
 {
-    const uint32_t caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
     size_t want = KHEAP_INTERNAL_SIZE;
 
     for (;;) {
-        s_region[KHEAP_INTERNAL] = (uint8_t *)heap_caps_aligned_alloc(KHEAP_ALIGN, want, caps);
+        s_region[KHEAP_INTERNAL] = (uint8_t *)kport_region_alloc(KHEAP_ALIGN, want, false);
         if (s_region[KHEAP_INTERNAL]) return want;
 
-        const size_t largest = heap_caps_get_largest_free_block(caps);
+        const size_t largest = kport_largest_free_internal();
         size_t next = (largest > KHEAP_IDF_RESERVE) ? largest - KHEAP_IDF_RESERVE : 0;
         next &= ~(size_t)(KHEAP_ALIGN - 1);
         if (next < KHEAP_INTERNAL_MIN || next >= want) return 0;
@@ -106,8 +104,8 @@ static size_t reserve_internal(void)
 bool kheap_reserve(void)
 {
     s_region_size[KHEAP_INTERNAL] = reserve_internal();
-    s_region[KHEAP_PSRAM] = (uint8_t *)heap_caps_aligned_alloc(
-        KHEAP_ALIGN, KHEAP_PSRAM_SIZE, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    s_region[KHEAP_PSRAM] = (uint8_t *)kport_region_alloc(
+        KHEAP_ALIGN, KHEAP_PSRAM_SIZE, true);
     s_region_size[KHEAP_PSRAM] = s_region[KHEAP_PSRAM] ? KHEAP_PSRAM_SIZE : 0;
     // Laid out here too, not on core 1: the PSRAM pool's first header is in
     // PSRAM, and core 1 cannot yet be parked for a flash write at the point

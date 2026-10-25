@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "port/kport.h"
-#include "esp_cpu.h"
 #include "kernel/klog.h"
 #include "kernel/kheap.h"
 #include "kernel/ktime.h"
@@ -49,7 +48,7 @@ static K_DRAM uint8_t s_overflow_id = 0xFF;
 
 K_IRAM k_percpu_t *k_cpu(void)
 {
-    uint32_t id = esp_cpu_get_core_id();
+    uint32_t id = kport_core_id();
     if (id >= K_MAX_CPUS) id = 0;   // stage 2.6b widens the array instead
     return &s_cpu[id];
 }
@@ -190,7 +189,7 @@ K_IRAM int k_task_create_stack(const char *name, k_task_fn fn, void *arg,
     t->arg        = arg;
     t->name       = name;
     t->id         = (uint8_t)slot;
-    t->cpu        = (uint8_t)esp_cpu_get_core_id();
+    t->cpu        = (uint8_t)kport_core_id();
     t->affinity   = cpu;
     t->prio       = (prio < K_PRIO_LEVELS) ? prio : K_PRIO_IDLE;   // indexes rr_at
     t->switches   = 0;
@@ -401,7 +400,7 @@ static inline K_IRAM bool runnable_here(const k_tcb_t *t, uint8_t me)
 static K_IRAM k_tcb_t *pick_next(k_percpu_t *c)
 {
     wake_due_sleepers();
-    const uint8_t me = (uint8_t)esp_cpu_get_core_id();
+    const uint8_t me = (uint8_t)kport_core_id();
 
     // The best level anything runnable is at.
     int level = K_PRIO_LEVELS;
@@ -489,7 +488,7 @@ K_IRAM void k_yield(void)
     }
     if (cur && cur->state == K_RUNNING) cur->state = K_READY;
     nxt->state = K_RUNNING;
-    nxt->cpu   = (uint8_t)esp_cpu_get_core_id();
+    nxt->cpu   = (uint8_t)kport_core_id();
     nxt->switches++;
     charge(c, cur, ccount());   // the outgoing task's stretch (stage 5.3)
     c->current = nxt;
@@ -542,7 +541,7 @@ static K_IRAM void k_end(k_state_t final)
         k_preempt_disable();
         k_unlock(ps);           // klog takes the console lock; never nest the two
         klog("[kernel] last task exited, halting core %d\n",
-             (int)esp_cpu_get_core_id());
+             (int)kport_core_id());
         for (;;) { __asm__ __volatile__("waiti 0"); }
     }
 
@@ -718,7 +717,7 @@ K_IRAM void k_smp_join(void)
     }
 
     first->state = K_RUNNING;
-    first->cpu   = (uint8_t)esp_cpu_get_core_id();
+    first->cpu   = (uint8_t)kport_core_id();
     first->switches++;
     c->in_cc   = ccount();      // its time starts now (stage 5.3)
     c->current = first;
@@ -726,7 +725,7 @@ K_IRAM void k_smp_join(void)
     c->running = true;
 
     static K_DRAM uint32_t *host_sp[K_MAX_CPUS];
-    k_ctx_switch(&host_sp[esp_cpu_get_core_id() % K_MAX_CPUS], first->sp);
+    k_ctx_switch(&host_sp[kport_core_id() % K_MAX_CPUS], first->sp);
 
     k_unlock(ps);               // only reached if the switch somehow returns
 }
