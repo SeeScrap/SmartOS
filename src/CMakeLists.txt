@@ -17,7 +17,7 @@ file(GLOB SMARTOS_APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/apps/*.cpp")
 idf_component_register(
     SRCS
         "main.cpp"
-        "port/kport_esp32s3.cpp"
+        "port/kport.cpp"
         "boot_gfx.cpp"
         "system.cpp"
         "tests/harness.cpp"
@@ -59,7 +59,7 @@ idf_component_register(
         "os/sysinfo.cpp"
         "ui/ui.cpp"
         "ui/keyboard.cpp"
-        "kernel/kcore1.cpp"
+        "port/kcore1.cpp"
         "kernel/kfault.cpp"
         "arch/xtensa/kvectors.S"
         "kernel/ksched.cpp"
@@ -67,7 +67,7 @@ idf_component_register(
         "kernel/ktime.cpp"
         "kernel/kheap.cpp"
         "kernel/kmbox.cpp"
-        "kernel/kpark.cpp"
+        "port/kpark.cpp"
         "kernel/ksync.cpp"
         ${SMARTOS_APP_SRCS}
     INCLUDE_DIRS "." "../include"
@@ -101,10 +101,10 @@ idf_component_register(
 
 # Stage 4.4: every SPI flash operation parks core 1. ESP-IDF calls these two
 # around each one; --wrap sends those calls to the wrappers in
-# kernel/kpark.cpp, which park core 1 and then call the originals. See the
-# note in kernel/kpark.h.
+# port/kpark.cpp, which park core 1 and then call the originals. See the
+# note in port/kpark.h.
 target_link_libraries(${COMPONENT_LIB} INTERFACE
     "-Wl,--wrap=spi_flash_disable_interrupts_caches_and_other_cpu"
     "-Wl,--wrap=spi_flash_enable_interrupts_caches_and_other_cpu"
-    # Stage 4.4: a restart puts core 1 to sleep first - see kernel/kcore1.cpp.
+    # Stage 4.4: a restart puts core 1 to sleep first - see port/kcore1.cpp.
     "-Wl,--wrap=esp_restart_noos")

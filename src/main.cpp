@@ -59,7 +59,7 @@
 #include "s3hal/lcd_probe.h"
 #include "s3hal/log.h"
 
-#include "kernel/kcore1.h"
+#include "port/kcore1.h"
 #include "kernel/kfault.h"
 
 extern "C" volatile uint32_t k_chain_end_hit;
@@ -69,7 +69,7 @@ extern "C" volatile uint32_t k_spin_stuck;
 #include "kernel/ksync.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 #include "kernel/klog.h"
 
 

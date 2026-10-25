@@ -19,7 +19,7 @@
 #include "esp_timer.h"
 
 #include "kernel/klog.h"
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
 #include "s3hal/hal_time.h"

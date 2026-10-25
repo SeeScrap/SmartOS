@@ -19,7 +19,7 @@
 // behind it: the kernel depended on the HAL, which depended on the operating
 // system the kernel was supposed to be replacing. This file is the seam that
 // reverses that. The kernel calls kport_*; the implementation for this chip
-// is src/port/kport_esp32s3.cpp.
+// is src/port/kport.cpp.
 //
 // WHY THERE IS NO STRUCT OF FUNCTION POINTERS
 //

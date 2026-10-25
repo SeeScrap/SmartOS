@@ -1,4 +1,4 @@
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 
 #include "port/kport.h"
 #include "esp_rom_sys.h"
@@ -7,7 +7,7 @@
 #include "soc/soc.h"
 #include "soc/system_reg.h"
 
-#include "kernel/kcore1.h"
+#include "port/kcore1.h"
 #include "kernel/kfault.h"
 #include "kernel/ktask.h"
 

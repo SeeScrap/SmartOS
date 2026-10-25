@@ -9,7 +9,7 @@
 
 #include "esp_timer.h"
 
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 
 #include "apps/apps.h"
 #include "os/app.h"

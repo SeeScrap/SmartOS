@@ -2,7 +2,7 @@
 
 #include "port/kport.h"
 #include "kernel/klog.h"
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 #include "kernel/ktask.h"
 
 // Everything here runs on core 1, so it all lives in IRAM for the same reason
@@ -33,7 +33,7 @@ K_IRAM void k_tick_start(uint32_t hz)
 
     // CCOUNT advances at the CPU clock, so a tick is simply cpu_hz / tick_hz.
     // K_CPU_MHZ is SmartOS's copy of ESP-IDF's clock setting; the static_assert
-    // that keeps the two from drifting apart is in port/kport_esp32s3.cpp,
+    // that keeps the two from drifting apart is in port/kport.cpp,
     // the one translation unit that should see both.
     uint32_t cpu_hz = (uint32_t)K_CPU_MHZ * 1000000u;
     k_tick_cycles  = cpu_hz / hz;

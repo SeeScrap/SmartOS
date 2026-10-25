@@ -19,7 +19,7 @@
 #include "gfx/text.h"
 #include "kernel/kheap.h"
 #include "kernel/kmbox.h"
-#include "kernel/kpark.h"
+#include "port/kpark.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
 #include "os/app.h"

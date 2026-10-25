@@ -14,7 +14,7 @@ void log_init(void)
 
 // logf and logln are kport_printf and kport_println. The names and the
 // header stay because a few hundred call sites use them; the bodies moved to
-// port/kport_esp32s3.cpp in R4b, together with the console lock they take.
+// port/kport.cpp in R4b, together with the console lock they take.
 void logf(const char *fmt, ...)
 {
     va_list ap;
