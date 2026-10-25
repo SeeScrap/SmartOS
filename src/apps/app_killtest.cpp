@@ -16,10 +16,7 @@
 
 #include <string.h>
 
-#include "kernel/ktime.h"
-#include "os/fs.h"
-#include "os/kfmt.h"
-#include "os/syslog.h"
+#include "smartos_app.h"
 
 static volatile uint32_t s_spins, s_draw_spins, s_sleeps, s_reads;
 

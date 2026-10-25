@@ -10,11 +10,8 @@
 // os/app.h. Hardware is in os/dev.h; text formatting in os/kfmt.h; random
 // numbers in os/krand.h; drawing in gfx/fb.h and gfx/text.h.
 
-#include "os/app.h"
+#include "smartos_app.h"
 
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "board/input.h"
 
 // Everything the app remembers. The runtime allocates it zeroed and hands it
 // back as c->user in every callback.

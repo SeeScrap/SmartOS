@@ -19,11 +19,7 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
-#include "os/dev.h"
-#include "os/fs.h"
-#include "os/kfmt.h"
-#include "board/input.h"
+#include "smartos_app.h"
 
 #define PLOT_Y     40            // top of the trace area, within the app area
 #define PLOT_H     160

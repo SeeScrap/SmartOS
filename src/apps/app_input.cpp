@@ -9,10 +9,7 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
-#include "kernel/ktime.h"
-#include "os/kfmt.h"
-#include "board/input.h"
+#include "smartos_app.h"
 
 #define LOG_LINES 9
 #define LOG_Y     116

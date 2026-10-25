@@ -7,9 +7,7 @@
 
 #include <string.h>
 
-#include "kernel/ktime.h"
-#include "os/fs.h"
-#include "os/kfmt.h"
+#include "smartos_app.h"
 
 fscheck_t     g_fscheck[FSCHECK_MAX];
 volatile int  g_fscheck_n;

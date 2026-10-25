@@ -8,11 +8,7 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "os/fs.h"
-#include "os/krand.h"
-#include "board/input.h"
+#include "smartos_app.h"
 
 #define CELL      8
 #define COLS      (LCD_WIDTH / 8)

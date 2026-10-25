@@ -5,9 +5,7 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
-#include "os/kfmt.h"
-#include "board/input.h"
+#include "smartos_app.h"
 
 typedef struct {
     int32_t  value;

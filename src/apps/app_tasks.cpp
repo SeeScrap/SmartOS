@@ -26,13 +26,7 @@
 
 #include <string.h>
 
-#include "gfx/text.h"
-#include "kernel/kheap.h"
-#include "kernel/ktask.h"
-#include "os/kfmt.h"
-#include "os/sysinfo.h"
-#include "board/input.h"
-#include "ui/ui.h"
+#include "smartos_app.h"
 
 #define ROWS_Y     64
 #define ROW_H      12

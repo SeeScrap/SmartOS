@@ -8,7 +8,7 @@
 
 #include "apps/apps.h"
 
-#include "gfx/text.h"
+#include "smartos_app.h"
 
 #define BOX 24
 
