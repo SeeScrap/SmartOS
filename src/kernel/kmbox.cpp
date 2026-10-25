@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "esp_rom_sys.h"
 #include "kernel/klog.h"
 #include "kernel/kspin.h"
@@ -14,18 +14,18 @@
 // The slots must be somewhere both cores can reach with the flash cache off,
 // and in internal SRAM specifically: S32C1I, which every hand-over below uses,
 // does not work on PSRAM.
-static DRAM_ATTR k_job_t  s_slots[KMBOX_SLOTS];
-static DRAM_ATTR uint32_t s_served;
-static volatile DRAM_ATTR uint32_t s_withdrawn;
-static volatile DRAM_ATTR uint32_t s_abandoned;
+static K_DRAM k_job_t  s_slots[KMBOX_SLOTS];
+static K_DRAM uint32_t s_served;
+static volatile K_DRAM uint32_t s_withdrawn;
+static volatile K_DRAM uint32_t s_abandoned;
 static kmbox_handler_t              s_handlers[KMBOX_OPS];   // core 0 only
 
-static inline IRAM_ATTR void barrier(void)
+static inline K_IRAM void barrier(void)
 {
     __asm__ __volatile__("memw" ::: "memory");
 }
 
-IRAM_ATTR void kmbox_init(void)
+K_IRAM void kmbox_init(void)
 {
     memset((void *)s_slots, 0, sizeof(s_slots));
     s_served    = 0;
@@ -36,7 +36,7 @@ IRAM_ATTR void kmbox_init(void)
 
 // --- poster side (any kernel task, either core) -----------------------------
 
-IRAM_ATTR int kmbox_post(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2)
+K_IRAM int kmbox_post(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2)
 {
     for (int i = 0; i < KMBOX_SLOTS; ++i) {
         // A cheap look first, so a full scan does not hammer the bus with
@@ -79,19 +79,19 @@ IRAM_ATTR int kmbox_post(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2)
     return -1;                   // mailbox full
 }
 
-IRAM_ATTR bool kmbox_done(int slot)
+K_IRAM bool kmbox_done(int slot)
 {
     if (slot < 0 || slot >= KMBOX_SLOTS) return false;
     return s_slots[slot].state == KMB_DONE;
 }
 
-IRAM_ATTR uint32_t kmbox_result(int slot)
+K_IRAM uint32_t kmbox_result(int slot)
 {
     if (slot < 0 || slot >= KMBOX_SLOTS) return 0;
     return s_slots[slot].result;
 }
 
-IRAM_ATTR void kmbox_release(int slot)
+K_IRAM void kmbox_release(int slot)
 {
     if (slot < 0 || slot >= KMBOX_SLOTS) return;
     // DONE belongs to the poster alone, so this is a plain store.
@@ -100,7 +100,7 @@ IRAM_ATTR void kmbox_release(int slot)
     barrier();
 }
 
-IRAM_ATTR bool kmbox_call_timeout(uint32_t op, uint32_t a0, uint32_t a1,
+K_IRAM bool kmbox_call_timeout(uint32_t op, uint32_t a0, uint32_t a1,
                                   uint32_t a2, uint32_t *result,
                                   uint32_t timeout_ms)
 {
@@ -146,7 +146,7 @@ IRAM_ATTR bool kmbox_call_timeout(uint32_t op, uint32_t a0, uint32_t a1,
     return ok;
 }
 
-IRAM_ATTR bool kmbox_call(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2,
+K_IRAM bool kmbox_call(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2,
                           uint32_t *result)
 {
     return kmbox_call_timeout(op, a0, a1, a2, result, KMBOX_TIMEOUT_MS);
@@ -154,7 +154,7 @@ IRAM_ATTR bool kmbox_call(uint32_t op, uint32_t a0, uint32_t a1, uint32_t a2,
 
 // --- server side (core 0, FreeRTOS context) ---------------------------------
 
-IRAM_ATTR void kmbox_service(void)
+K_IRAM void kmbox_service(void)
 {
     for (int i = 0; i < KMBOX_SLOTS; ++i) {
         if (s_slots[i].state != KMB_POSTED) continue;
@@ -258,11 +258,11 @@ bool kmbox_register(uint32_t op, kmbox_handler_t fn)
     return true;
 }
 
-IRAM_ATTR uint32_t kmbox_served_count(void)    { return s_served; }
-IRAM_ATTR uint32_t kmbox_withdrawn_count(void) { return s_withdrawn; }
-IRAM_ATTR uint32_t kmbox_abandoned_count(void) { return s_abandoned; }
+K_IRAM uint32_t kmbox_served_count(void)    { return s_served; }
+K_IRAM uint32_t kmbox_withdrawn_count(void) { return s_withdrawn; }
+K_IRAM uint32_t kmbox_abandoned_count(void) { return s_abandoned; }
 
-IRAM_ATTR void kmbox_census(uint32_t *empty, uint32_t *posted, uint32_t *done,
+K_IRAM void kmbox_census(uint32_t *empty, uint32_t *posted, uint32_t *done,
                             uint32_t *busy)
 {
     uint32_t e = 0, p = 0, d = 0, b = 0;

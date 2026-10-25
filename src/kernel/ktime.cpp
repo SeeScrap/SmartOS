@@ -1,6 +1,6 @@
 #include "kernel/ktime.h"
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "kernel/klog.h"
 #include "kernel/kpark.h"
 #include "kernel/ktask.h"
@@ -9,25 +9,25 @@
 // Everything here runs on core 1, so it all lives in IRAM for the same reason
 // the scheduler does - see the note at the top of ksched.cpp.
 
-static DRAM_ATTR uint32_t s_tick_hz   = 0;
-static DRAM_ATTR bool     s_preempt   = false;
+static K_DRAM uint32_t s_tick_hz   = 0;
+static K_DRAM bool     s_preempt   = false;
 // s_preempt stays global on purpose: whether preemption is enabled at all is a
 // system-wide policy. The hold depth and the counter are per core - see the
 // note in k_percpu_t for what sharing them cost.
-static DRAM_ATTR bool     s_running  = false;
+static K_DRAM bool     s_running  = false;
 
 // CCOUNT at the boundary of the last tick counted. Ticks are counted as whole
 // periods elapsed since this, not as one per interrupt - see k_int_dispatch.
-static DRAM_ATTR uint32_t s_tick_base = 0;
-static DRAM_ATTR uint32_t s_tick_catchups = 0;   // interrupts that counted >1 tick
-static DRAM_ATTR uint32_t s_tick_max_step = 0;   // most ticks counted at once
+static K_DRAM uint32_t s_tick_base = 0;
+static K_DRAM uint32_t s_tick_catchups = 0;   // interrupts that counted >1 tick
+static K_DRAM uint32_t s_tick_max_step = 0;   // most ticks counted at once
 
 // How far ahead CCOMPARE0 must be when it is written. Closer than this, and
 // CCOUNT can pass it before the write lands - after which the comparator does
 // not match again until CCOUNT wraps, 17.9 seconds later.
 #define K_TICK_MARGIN_CYCLES 2000
 
-IRAM_ATTR void k_tick_start(uint32_t hz)
+K_IRAM void k_tick_start(uint32_t hz)
 {
     if (hz == 0) hz = K_TICK_HZ;
     s_tick_hz = hz;
@@ -61,15 +61,15 @@ IRAM_ATTR void k_tick_start(uint32_t hz)
          (unsigned)hz, (unsigned)k_tick_cycles);
 }
 
-IRAM_ATTR bool k_tick_running(void) { return s_running; }
+K_IRAM bool k_tick_running(void) { return s_running; }
 
-IRAM_ATTR void k_preempt_enable(void)  { s_preempt = true; }
-IRAM_ATTR void k_preempt_disable(void) { s_preempt = false; }
-IRAM_ATTR bool k_preempt_enabled(void) { return s_preempt; }
-IRAM_ATTR uint32_t k_preempt_count(void) { return k_cpu()->preempts; }
+K_IRAM void k_preempt_enable(void)  { s_preempt = true; }
+K_IRAM void k_preempt_disable(void) { s_preempt = false; }
+K_IRAM bool k_preempt_enabled(void) { return s_preempt; }
+K_IRAM uint32_t k_preempt_count(void) { return k_cpu()->preempts; }
 
-IRAM_ATTR void k_preempt_hold(void)    { k_cpu()->hold++; }
-IRAM_ATTR void k_preempt_release(void) { k_percpu_t *c = k_cpu(); if (c->hold) c->hold--; }
+K_IRAM void k_preempt_hold(void)    { k_cpu()->hold++; }
+K_IRAM void k_preempt_release(void) { k_percpu_t *c = k_cpu(); if (c->hold) c->hold--; }
 
 // ---------------------------------------------------------------------------
 // The C half of the tick interrupt, called by _s3_int_entry once it has left
@@ -90,16 +90,16 @@ IRAM_ATTR void k_preempt_release(void) { k_percpu_t *c = k_cpu(); if (c->hold) c
 // one bug into two, so the evidence is collected now and reported later.
 // k_trace_t itself is declared in ktime.h; the ring lives here.
 #define K_TRACE_N 24
-static DRAM_ATTR k_trace_t s_trace[K_TRACE_N];
-static DRAM_ATTR uint32_t  s_trace_used;
+static K_DRAM k_trace_t s_trace[K_TRACE_N];
+static K_DRAM uint32_t  s_trace_used;
 
-extern "C" IRAM_ATTR uint32_t k_trace_count(void) { return s_trace_used; }
-extern "C" IRAM_ATTR const k_trace_t *k_trace_at(uint32_t i)
+extern "C" K_IRAM uint32_t k_trace_count(void) { return s_trace_used; }
+extern "C" K_IRAM const k_trace_t *k_trace_at(uint32_t i)
 {
     return (i < K_TRACE_N && i < s_trace_used) ? &s_trace[i] : nullptr;
 }
 
-extern "C" IRAM_ATTR void k_int_dispatch(uint32_t *frame)
+extern "C" K_IRAM void k_int_dispatch(uint32_t *frame)
 {
     // Every level-1 interrupt on this core arrives here. Until stage 4.3a
     // there was only the tick, and this function assumed it; now the park
@@ -183,23 +183,23 @@ extern "C" IRAM_ATTR void k_int_dispatch(uint32_t *frame)
     }
 }
 
-IRAM_ATTR uint32_t k_ticks(void) { return k_tick_count; }
-IRAM_ATTR uint32_t k_tick_catchups(void) { return s_tick_catchups; }
-IRAM_ATTR uint32_t k_tick_max_step(void) { return s_tick_max_step; }
+K_IRAM uint32_t k_ticks(void) { return k_tick_count; }
+K_IRAM uint32_t k_tick_catchups(void) { return s_tick_catchups; }
+K_IRAM uint32_t k_tick_max_step(void) { return s_tick_max_step; }
 
-IRAM_ATTR uint32_t k_tick_hz(void) { return s_tick_hz; }
+K_IRAM uint32_t k_tick_hz(void) { return s_tick_hz; }
 
-IRAM_ATTR uint32_t k_millis(void)
+K_IRAM uint32_t k_millis(void)
 {
     if (s_tick_hz == 0) return 0;
     return (uint32_t)((uint64_t)k_tick_count * 1000u / s_tick_hz);
 }
 
-IRAM_ATTR bool k_resched_pending(void) { return k_need_resched != 0; }
+K_IRAM bool k_resched_pending(void) { return k_need_resched != 0; }
 
-IRAM_ATTR void k_resched_clear(void) { k_need_resched = 0; }
+K_IRAM void k_resched_clear(void) { k_need_resched = 0; }
 
-IRAM_ATTR void k_sleep_ms(uint32_t ms)
+K_IRAM void k_sleep_ms(uint32_t ms)
 {
     if (!s_running) {
         // No clock yet: the best we can honestly do is give others a turn.

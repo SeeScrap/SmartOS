@@ -2,13 +2,13 @@
 
 #include <string.h>
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "esp_cpu.h"
 #include "kernel/klog.h"
 #include "kernel/kheap.h"
 #include "kernel/ktime.h"
 
-// Every function here carries IRAM_ATTR. Core 0 disables the shared flash
+// Every function here carries K_IRAM. Core 0 disables the shared flash
 // cache whenever it writes flash, and a kernel that lives in flash would stop
 // mid-instruction when that happens. Only the klog format strings still sit in
 // flash .rodata - harmless while core 0 never writes flash, and something
@@ -21,15 +21,15 @@ extern "C" volatile uint32_t k_chain_end_hit;
 // Stage 2.5 moved task stacks onto kmalloc. Before that they came from a fixed
 // array, because the alternative was heap_caps_malloc() and that takes a
 // FreeRTOS lock core 1 must never touch. Now the memory is the kernel's own.
-static DRAM_ATTR k_tcb_t  s_tcb[K_MAX_TASKS];
-static DRAM_ATTR k_percpu_t s_cpu[K_MAX_CPUS];
-static DRAM_ATTR uint32_t s_next_gen;   // scheduler lock
-static DRAM_ATTR uint32_t s_kills;
+static K_DRAM k_tcb_t  s_tcb[K_MAX_TASKS];
+static K_DRAM k_percpu_t s_cpu[K_MAX_CPUS];
+static K_DRAM uint32_t s_next_gen;   // scheduler lock
+static K_DRAM uint32_t s_kills;
 
 static void k_end(k_state_t final);    // k_exit, and a killed task's last switch
 
 // Is some core standing on this task's stack right now? Scheduler lock held.
-static inline IRAM_ATTR bool is_anyones_current(const k_tcb_t *t)
+static inline K_IRAM bool is_anyones_current(const k_tcb_t *t)
 {
     for (int k = 0; k < K_MAX_CPUS; ++k) {
         if (s_cpu[k].current == t) return true;
@@ -45,9 +45,9 @@ static inline IRAM_ATTR bool is_anyones_current(const k_tcb_t *t)
 // which is the cheapest place to catch an overrun that is still recoverable -
 // one word compared per switch, against silently corrupting whatever the
 // allocator put underneath.
-static DRAM_ATTR uint8_t s_overflow_id = 0xFF;
+static K_DRAM uint8_t s_overflow_id = 0xFF;
 
-IRAM_ATTR k_percpu_t *k_cpu(void)
+K_IRAM k_percpu_t *k_cpu(void)
 {
     uint32_t id = esp_cpu_get_core_id();
     if (id >= K_MAX_CPUS) id = 0;   // stage 2.6b widens the array instead
@@ -62,7 +62,7 @@ IRAM_ATTR k_percpu_t *k_cpu(void)
 //               into a0..a3 of the frame we land in
 //   sp[0]       the resume address k_ctx_switch() loads into a0
 // ---------------------------------------------------------------------------
-static IRAM_ATTR uint32_t *k_stack_init(uint8_t *base, size_t size)
+static K_IRAM uint32_t *k_stack_init(uint8_t *base, size_t size)
 {
     uintptr_t top = ((uintptr_t)base + size) & ~(uintptr_t)0xF;
 
@@ -95,31 +95,31 @@ static IRAM_ATTR uint32_t *k_stack_init(uint8_t *base, size_t size)
     return sp;
 }
 
-IRAM_ATTR void k_init(void)
+K_IRAM void k_init(void)
 {
     memset(s_tcb, 0, sizeof(s_tcb));
     memset(s_cpu, 0, sizeof(s_cpu));
     kheap_init();
 }
 
-IRAM_ATTR int k_task_create(const char *name, k_task_fn fn, void *arg)
+K_IRAM int k_task_create(const char *name, k_task_fn fn, void *arg)
 {
     return k_task_create_on(name, fn, arg, K_CPU_ANY);
 }
 
-IRAM_ATTR int k_task_create_on(const char *name, k_task_fn fn, void *arg,
+K_IRAM int k_task_create_on(const char *name, k_task_fn fn, void *arg,
                                uint8_t cpu)
 {
     return k_task_create_pri(name, fn, arg, cpu, K_PRIO_NORMAL);
 }
 
-IRAM_ATTR int k_task_create_pri(const char *name, k_task_fn fn, void *arg,
+K_IRAM int k_task_create_pri(const char *name, k_task_fn fn, void *arg,
                                 uint8_t cpu, uint8_t prio)
 {
     return k_task_create_gen(name, fn, arg, cpu, prio, nullptr);
 }
 
-IRAM_ATTR size_t k_stack_bytes_for(size_t asked)
+K_IRAM size_t k_stack_bytes_for(size_t asked)
 {
     size_t n = asked ? asked : K_STACK_SIZE;
     if (n < K_STACK_MIN) n = K_STACK_MIN;
@@ -127,13 +127,13 @@ IRAM_ATTR size_t k_stack_bytes_for(size_t asked)
     return (n + 15u) & ~(size_t)15u;          // stacks stay 16-byte aligned
 }
 
-IRAM_ATTR int k_task_create_gen(const char *name, k_task_fn fn, void *arg,
+K_IRAM int k_task_create_gen(const char *name, k_task_fn fn, void *arg,
                                 uint8_t cpu, uint8_t prio, uint32_t *gen)
 {
     return k_task_create_stack(name, fn, arg, cpu, prio, K_STACK_SIZE, gen);
 }
 
-IRAM_ATTR int k_task_create_stack(const char *name, k_task_fn fn, void *arg,
+K_IRAM int k_task_create_stack(const char *name, k_task_fn fn, void *arg,
                                   uint8_t cpu, uint8_t prio, size_t stack_bytes,
                                   uint32_t *gen)
 {
@@ -220,7 +220,7 @@ IRAM_ATTR int k_task_create_stack(const char *name, k_task_fn fn, void *arg,
 // Promote any sleeper whose deadline has passed. The subtraction is done on
 // signed values so that a tick counter wrapping past 2^32 does not strand a
 // sleeping task forever.
-static IRAM_ATTR void wake_due_sleepers(void)
+static K_IRAM void wake_due_sleepers(void)
 {
     uint32_t now = k_tick_count;
     for (int i = 0; i < K_MAX_TASKS; ++i) {
@@ -231,7 +231,7 @@ static IRAM_ATTR void wake_due_sleepers(void)
     }
 }
 
-IRAM_ATTR k_tcb_t *k_task_by_id(uint8_t id)
+K_IRAM k_tcb_t *k_task_by_id(uint8_t id)
 {
     return (id < K_MAX_TASKS) ? &s_tcb[id] : nullptr;
 }
@@ -241,7 +241,7 @@ IRAM_ATTR k_tcb_t *k_task_by_id(uint8_t id)
 // A sleeper will, when the tick says so. A blocked task will, when whoever
 // holds what it wants lets go - which needs some other core to be running, so
 // waiting on that is only useful in an SMP build, but it is never wrong.
-static IRAM_ATTR bool any_waiting(void)
+static K_IRAM bool any_waiting(void)
 {
     for (int i = 0; i < K_MAX_TASKS; ++i) {
         if (s_tcb[i].state == K_SLEEPING || s_tcb[i].state == K_BLOCKED) {
@@ -265,7 +265,7 @@ static IRAM_ATTR bool any_waiting(void)
 // A core's current task is exactly the one whose stack that core is on - once
 // core 0 joins it never switches back to its host stack - so this is the test
 // that means "free to be resumed", whatever the state field says.
-static IRAM_ATTR bool on_other_core(const k_tcb_t *t, uint8_t me)
+static K_IRAM bool on_other_core(const k_tcb_t *t, uint8_t me)
 {
     for (int k = 0; k < K_MAX_CPUS; ++k) {
         if (k != me && s_cpu[k].current == t) return true;
@@ -278,7 +278,7 @@ static IRAM_ATTR bool on_other_core(const k_tcb_t *t, uint8_t me)
 // interrupts masked (the scheduler lock, or inside the tick or park ISR), so
 // none of it races the rest.
 
-static inline IRAM_ATTR uint32_t ccount(void)
+static inline K_IRAM uint32_t ccount(void)
 {
     uint32_t cc;
     __asm__ __volatile__("rsr %0, ccount" : "=a"(cc));
@@ -286,7 +286,7 @@ static inline IRAM_ATTR uint32_t ccount(void)
 }
 
 // Charges t with everything since this core last charged anyone.
-static inline IRAM_ATTR void charge(k_percpu_t *c, k_tcb_t *t, uint32_t now)
+static inline K_IRAM void charge(k_percpu_t *c, k_tcb_t *t, uint32_t now)
 {
     const uint32_t d = now - c->in_cc;
     if (t) t->cycles += d;
@@ -299,7 +299,7 @@ static inline IRAM_ATTR void charge(k_percpu_t *c, k_tcb_t *t, uint32_t now)
 // to ever end, so the tick can land in here - inside the scheduler. Holding
 // preemption lets it count the tick without calling us again from within.
 // The wait itself is idle time, not the waiting task's.
-static IRAM_ATTR void idle_wait(k_percpu_t *c, k_tcb_t *cur, uint32_t *ps)
+static K_IRAM void idle_wait(k_percpu_t *c, k_tcb_t *cur, uint32_t *ps)
 {
     const uint32_t now = ccount();
     charge(c, cur, now);
@@ -318,13 +318,13 @@ static IRAM_ATTR void idle_wait(k_percpu_t *c, k_tcb_t *cur, uint32_t *ps)
     c->in_cc  = after;
 }
 
-IRAM_ATTR void k_account_tick(void)
+K_IRAM void k_account_tick(void)
 {
     k_percpu_t *c = k_cpu();
     if (c->running && !c->idling) charge(c, c->current, ccount());
 }
 
-IRAM_ATTR void k_account_park(uint32_t cycles)
+K_IRAM void k_account_park(uint32_t cycles)
 {
     // Moved forward past the park, so neither the interrupted task nor the
     // idle wait it may have interrupted is charged for it.
@@ -334,7 +334,7 @@ IRAM_ATTR void k_account_park(uint32_t cycles)
     c->idle_from   += cycles;
 }
 
-IRAM_ATTR int k_task_snapshot(k_task_info_t *out, int max)
+K_IRAM int k_task_snapshot(k_task_info_t *out, int max)
 {
     int n = 0;
     uint32_t ps = k_lock();
@@ -363,7 +363,7 @@ IRAM_ATTR int k_task_snapshot(k_task_info_t *out, int max)
     return n;
 }
 
-IRAM_ATTR void k_cpu_time(int core, k_cpu_time_t *out)
+K_IRAM void k_cpu_time(int core, k_cpu_time_t *out)
 {
     if (core < 0 || core >= K_MAX_CPUS) { *out = {}; return; }
     uint32_t ps = k_lock();
@@ -374,7 +374,7 @@ IRAM_ATTR void k_cpu_time(int core, k_cpu_time_t *out)
 }
 
 // Could this core run t right now?
-static inline IRAM_ATTR bool runnable_here(const k_tcb_t *t, uint8_t me)
+static inline K_IRAM bool runnable_here(const k_tcb_t *t, uint8_t me)
 {
     return t->state == K_READY &&
            (t->affinity == K_CPU_ANY || t->affinity == me) &&
@@ -398,7 +398,7 @@ static inline IRAM_ATTR bool runnable_here(const k_tcb_t *t, uint8_t me)
 // Measured: three apps spinning, 49.7 %, 49.9 % and 0.0 % of core 1; the task
 // manager, as that third app, got 0 ms in three seconds. Now each level has its
 // own place in the rotation, and a higher level being served leaves it alone.
-static IRAM_ATTR k_tcb_t *pick_next(k_percpu_t *c)
+static K_IRAM k_tcb_t *pick_next(k_percpu_t *c)
 {
     wake_due_sleepers();
     const uint8_t me = (uint8_t)esp_cpu_get_core_id();
@@ -424,7 +424,7 @@ static IRAM_ATTR k_tcb_t *pick_next(k_percpu_t *c)
     return nullptr;                  // cannot happen: pass one found one
 }
 
-IRAM_ATTR void k_yield(void)
+K_IRAM void k_yield(void)
 {
     uint32_t ps = k_lock();
 
@@ -503,12 +503,12 @@ IRAM_ATTR void k_yield(void)
     k_unlock(ps);
 }
 
-IRAM_ATTR void k_exit(void)
+K_IRAM void k_exit(void)
 {
     k_end(K_DEAD);
 }
 
-static IRAM_ATTR void k_end(k_state_t final)
+static K_IRAM void k_end(k_state_t final)
 {
     // No k_preempt_hold here. k_exit never returns on the path that matters, so
     // the matching release would never run and preemption would be off for the
@@ -557,7 +557,7 @@ static IRAM_ATTR void k_end(k_state_t final)
 
     // Our stack is about to stop mattering, but k_ctx_switch still needs
     // somewhere to write the outgoing pointer.
-    static DRAM_ATTR uint32_t *discard;
+    static K_DRAM uint32_t *discard;
     k_ctx_switch(&discard, nxt->sp);
 
     // Unreachable: a dead task is never picked again.
@@ -568,14 +568,14 @@ static IRAM_ATTR void k_end(k_state_t final)
 // The rules, and why ZOMBIE exists, are in ktask.h.
 
 // The task (id, gen), if that is still what the slot holds. Lock held.
-static inline IRAM_ATTR k_tcb_t *same_task(uint8_t id, uint32_t gen)
+static inline K_IRAM k_tcb_t *same_task(uint8_t id, uint32_t gen)
 {
     if (id >= K_MAX_TASKS) return nullptr;
     k_tcb_t *t = &s_tcb[id];
     return (t->gen == gen && t->state != K_UNUSED) ? t : nullptr;
 }
 
-IRAM_ATTR k_kill_t k_task_kill(uint8_t id, uint32_t gen)
+K_IRAM k_kill_t k_task_kill(uint8_t id, uint32_t gen)
 {
     uint32_t ps = k_lock();
     k_tcb_t *t = same_task(id, gen);
@@ -604,7 +604,7 @@ IRAM_ATTR k_kill_t k_task_kill(uint8_t id, uint32_t gen)
     return r;
 }
 
-IRAM_ATTR k_task_status_t k_task_status(uint8_t id, uint32_t gen)
+K_IRAM k_task_status_t k_task_status(uint8_t id, uint32_t gen)
 {
     uint32_t ps = k_lock();
     k_tcb_t *t = same_task(id, gen);
@@ -616,7 +616,7 @@ IRAM_ATTR k_task_status_t k_task_status(uint8_t id, uint32_t gen)
     return s;
 }
 
-IRAM_ATTR void k_task_reap(uint8_t id, uint32_t gen)
+K_IRAM void k_task_reap(uint8_t id, uint32_t gen)
 {
     uint32_t ps = k_lock();
     k_tcb_t *t = same_task(id, gen);
@@ -624,7 +624,7 @@ IRAM_ATTR void k_task_reap(uint8_t id, uint32_t gen)
     k_unlock(ps);
 }
 
-IRAM_ATTR uint32_t k_task_kills(void) { return s_kills; }
+K_IRAM uint32_t k_task_kills(void) { return s_kills; }
 
 // Stage 5.3c. A task cannot free the stack it is standing on, so until now a
 // DEAD task's stack went back to the heap only when k_task_create happened to
@@ -633,7 +633,7 @@ IRAM_ATTR uint32_t k_task_kills(void) { return s_kills; }
 // with nothing open. Core 0's main loop now hands them back as soon as no core
 // is on them. ZOMBIE tasks are not touched here: their stacks wait for
 // kmbox_forget and k_task_reap (stage 5.2).
-IRAM_ATTR size_t k_free_dead_stacks(void)
+K_IRAM size_t k_free_dead_stacks(void)
 {
     uint8_t *gone[K_MAX_TASKS];
     int n = 0;
@@ -653,7 +653,7 @@ IRAM_ATTR size_t k_free_dead_stacks(void)
 }
 
 // Called from k_task_trampoline. Never returns.
-extern "C" IRAM_ATTR void k_task_launch(void)
+extern "C" K_IRAM void k_task_launch(void)
 {
     // The context that switched to us was holding the scheduler lock and had
     // interrupts masked, and it is not coming back to undo either. A task
@@ -671,7 +671,7 @@ extern "C" IRAM_ATTR void k_task_launch(void)
     for (;;) { }
 }
 
-IRAM_ATTR void k_start(void)
+K_IRAM void k_start(void)
 {
     k_percpu_t *c = k_cpu();
 
@@ -692,7 +692,7 @@ IRAM_ATTR void k_start(void)
 
     // The context that called k_start is abandoned - core 1 has nothing to go
     // back to - but k_ctx_switch still needs a slot to write into.
-    static DRAM_ATTR uint32_t *boot_sp;
+    static K_DRAM uint32_t *boot_sp;
     k_ctx_switch(&boot_sp, first->sp);
 
     // Unreachable.
@@ -706,7 +706,7 @@ IRAM_ATTR void k_start(void)
 // on core 0 that is a FreeRTOS task created for the purpose. The core keeps
 // FreeRTOS alive because one of the kernel tasks pinned to it hands the slice
 // straight back with vTaskDelay.
-IRAM_ATTR void k_smp_join(void)
+K_IRAM void k_smp_join(void)
 {
     k_percpu_t *c = k_cpu();
 
@@ -725,28 +725,28 @@ IRAM_ATTR void k_smp_join(void)
     c->switches++;
     c->running = true;
 
-    static DRAM_ATTR uint32_t *host_sp[K_MAX_CPUS];
+    static K_DRAM uint32_t *host_sp[K_MAX_CPUS];
     k_ctx_switch(&host_sp[esp_cpu_get_core_id() % K_MAX_CPUS], first->sp);
 
     k_unlock(ps);               // only reached if the switch somehow returns
 }
 
-IRAM_ATTR k_tcb_t *k_current(void)
+K_IRAM k_tcb_t *k_current(void)
 {
     return k_cpu()->current;
 }
 
-IRAM_ATTR uint32_t k_switch_count(void)
+K_IRAM uint32_t k_switch_count(void)
 {
     return k_cpu()->switches;
 }
 
-IRAM_ATTR uint8_t k_stack_overflow_id(void)
+K_IRAM uint8_t k_stack_overflow_id(void)
 {
     return s_overflow_id;
 }
 
-IRAM_ATTR size_t k_stack_high_water(const k_tcb_t *t)
+K_IRAM size_t k_stack_high_water(const k_tcb_t *t)
 {
     if (!t || !t->stack) return 0;
     const uint32_t *w = (const uint32_t *)(t->stack + K_STACK_GUARD);
@@ -756,7 +756,7 @@ IRAM_ATTR size_t k_stack_high_water(const k_tcb_t *t)
     return t->stack_size - untouched * 4;
 }
 
-static IRAM_ATTR const char *state_name(k_state_t s)
+static K_IRAM const char *state_name(k_state_t s)
 {
     switch (s) {
         case K_READY:    return "READY";
@@ -769,7 +769,7 @@ static IRAM_ATTR const char *state_name(k_state_t s)
     }
 }
 
-IRAM_ATTR void ktop(void)
+K_IRAM void ktop(void)
 {
     klog("\n  id name        state  cpu aff pri  switches  stack used/total\n");
     klog("  -- ----------- ------ --- --- ---  --------- ----------------\n");

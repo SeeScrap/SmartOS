@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "esp_heap_caps.h"
 #include "kernel/klog.h"
 #include "kernel/ktask.h"
@@ -33,29 +33,29 @@ typedef struct {
     size_t   size;
 } kpool_t;
 
-static DRAM_ATTR kpool_t s_pool[KHEAP_POOLS];
+static K_DRAM kpool_t s_pool[KHEAP_POOLS];
 
-static inline IRAM_ATTR size_t align_up(size_t n)
+static inline K_IRAM size_t align_up(size_t n)
 {
     return (n + (KHEAP_ALIGN - 1)) & ~(size_t)(KHEAP_ALIGN - 1);
 }
 
-static inline IRAM_ATTR void *payload_of(kblk_t *b)
+static inline K_IRAM void *payload_of(kblk_t *b)
 {
     return (void *)((uint8_t *)b + sizeof(kblk_t));
 }
 
-static inline IRAM_ATTR kblk_t *block_of(void *p)
+static inline K_IRAM kblk_t *block_of(void *p)
 {
     return (kblk_t *)((uint8_t *)p - sizeof(kblk_t));
 }
 
 // Where core 0 put the two regions. Written before core 1 starts, read by
 // kheap_init on core 1.
-static DRAM_ATTR uint8_t *s_region[KHEAP_POOLS];
-static DRAM_ATTR size_t   s_region_size[KHEAP_POOLS];
+static K_DRAM uint8_t *s_region[KHEAP_POOLS];
+static K_DRAM size_t   s_region_size[KHEAP_POOLS];
 
-static IRAM_ATTR void pool_init(kpool_t *pl, uint8_t *base, size_t size)
+static K_IRAM void pool_init(kpool_t *pl, uint8_t *base, size_t size)
 {
     pl->base = base;
     pl->size = size;
@@ -118,11 +118,11 @@ bool kheap_reserve(void)
 
 // Core 1, from k_init. Nothing left to do: kheap_reserve has done it all on
 // core 0. Kept so k_init reads as it always has.
-IRAM_ATTR void kheap_init(void)
+K_IRAM void kheap_init(void)
 {
 }
 
-static inline IRAM_ATTR kpool_t *pool_of(const void *p)
+static inline K_IRAM kpool_t *pool_of(const void *p)
 {
     for (int i = 0; i < KHEAP_POOLS; ++i) {
         const kpool_t *pl = &s_pool[i];
@@ -133,7 +133,7 @@ static inline IRAM_ATTR kpool_t *pool_of(const void *p)
     return nullptr;
 }
 
-IRAM_ATTR void *kmalloc_in(kheap_pool_t pool, size_t bytes, uint16_t owner)
+K_IRAM void *kmalloc_in(kheap_pool_t pool, size_t bytes, uint16_t owner)
 {
     if (bytes == 0 || pool >= KHEAP_POOLS) return nullptr;
     size_t want = align_up(bytes);
@@ -167,12 +167,12 @@ IRAM_ATTR void *kmalloc_in(kheap_pool_t pool, size_t bytes, uint16_t owner)
     return nullptr;
 }
 
-IRAM_ATTR void *kmalloc(size_t bytes)
+K_IRAM void *kmalloc(size_t bytes)
 {
     return kmalloc_in(KHEAP_INTERNAL, bytes, 0);
 }
 
-IRAM_ATTR void *kcalloc(size_t n, size_t size)
+K_IRAM void *kcalloc(size_t n, size_t size)
 {
     size_t total = n * size;
     void *p = kmalloc(total);
@@ -181,7 +181,7 @@ IRAM_ATTR void *kcalloc(size_t n, size_t size)
 }
 
 // Frees b, which must be in pl and in use. Lock held.
-static IRAM_ATTR void free_block(kpool_t *pl, kblk_t *b)
+static K_IRAM void free_block(kpool_t *pl, kblk_t *b)
 {
     b->free  = 1;
     b->owner = 0;
@@ -201,7 +201,7 @@ static IRAM_ATTR void free_block(kpool_t *pl, kblk_t *b)
     }
 }
 
-IRAM_ATTR void kfree(void *p)
+K_IRAM void kfree(void *p)
 {
     if (!p) return;
 
@@ -225,7 +225,7 @@ IRAM_ATTR void kfree(void *p)
     k_unlock(ps);
 }
 
-IRAM_ATTR size_t kheap_free_owner(kheap_pool_t pool, uint16_t owner)
+K_IRAM size_t kheap_free_owner(kheap_pool_t pool, uint16_t owner)
 {
     if (pool >= KHEAP_POOLS || owner == 0) return 0;     // the kernel's are never swept
     size_t freed = 0;
@@ -247,7 +247,7 @@ IRAM_ATTR size_t kheap_free_owner(kheap_pool_t pool, uint16_t owner)
     return freed;
 }
 
-IRAM_ATTR size_t kheap_owner_bytes(kheap_pool_t pool, uint16_t owner)
+K_IRAM size_t kheap_owner_bytes(kheap_pool_t pool, uint16_t owner)
 {
     if (pool >= KHEAP_POOLS) return 0;
     size_t n = 0;
@@ -259,7 +259,7 @@ IRAM_ATTR size_t kheap_owner_bytes(kheap_pool_t pool, uint16_t owner)
     return n;
 }
 
-IRAM_ATTR void kheap_stats_pool(kheap_pool_t pool, kheap_stats_t *out)
+K_IRAM void kheap_stats_pool(kheap_pool_t pool, kheap_stats_t *out)
 {
     if (!out) return;
     memset(out, 0, sizeof(*out));
@@ -280,12 +280,12 @@ IRAM_ATTR void kheap_stats_pool(kheap_pool_t pool, kheap_stats_t *out)
     k_unlock(ps);
 }
 
-IRAM_ATTR void kheap_stats(kheap_stats_t *out)
+K_IRAM void kheap_stats(kheap_stats_t *out)
 {
     kheap_stats_pool(KHEAP_INTERNAL, out);
 }
 
-IRAM_ATTR void kheap_dump(void)
+K_IRAM void kheap_dump(void)
 {
     for (int i = 0; i < KHEAP_POOLS; ++i) {
         kheap_stats_t s;

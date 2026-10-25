@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "esp_attr.h"
+#include "port/kport.h"
 
 #include "smartos_config.h"
 
@@ -30,7 +30,7 @@ typedef volatile uint32_t k_spin_t;
 // K_SPIN_TIMEOUT - how long k_spin_lock waits before giving up - is set in
 // smartos_config.h, section 4, with the reason it is as generous as it is.
 
-static inline IRAM_ATTR bool k_spin_try(k_spin_t *lock)
+static inline K_IRAM bool k_spin_try(k_spin_t *lock)
 {
     uint32_t val     = 1;
     uint32_t compare = 0;
@@ -52,7 +52,7 @@ static inline IRAM_ATTR bool k_spin_try(k_spin_t *lock)
 // *p must be DRAM, never PSRAM. The barrier on each side makes the swap a
 // full fence: nothing written before it can be seen after the new state, and
 // nothing read after it can come from before.
-static inline IRAM_ATTR bool k_cas(volatile uint32_t *p, uint32_t expect,
+static inline K_IRAM bool k_cas(volatile uint32_t *p, uint32_t expect,
                                    uint32_t desired)
 {
     uint32_t val = desired;
@@ -67,7 +67,7 @@ static inline IRAM_ATTR bool k_cas(volatile uint32_t *p, uint32_t expect,
     return val == expect;         // S32C1I hands back what it found
 }
 
-static inline IRAM_ATTR bool k_spin_lock(k_spin_t *lock)
+static inline K_IRAM bool k_spin_lock(k_spin_t *lock)
 {
     for (uint32_t i = 0; i < K_SPIN_TIMEOUT; ++i) {
         if (k_spin_try(lock)) return true;
@@ -75,7 +75,7 @@ static inline IRAM_ATTR bool k_spin_lock(k_spin_t *lock)
     return false;
 }
 
-static inline IRAM_ATTR void k_spin_unlock(k_spin_t *lock)
+static inline K_IRAM void k_spin_unlock(k_spin_t *lock)
 {
     __asm__ __volatile__("memw" ::: "memory");
     *lock = 0;
@@ -90,7 +90,7 @@ static inline IRAM_ATTR void k_spin_unlock(k_spin_t *lock)
 // been spinning long enough that something is clearly wrong.
 extern "C" volatile uint32_t k_spin_stuck;
 
-static inline IRAM_ATTR void k_spin_lock_hard(k_spin_t *lock)
+static inline K_IRAM void k_spin_lock_hard(k_spin_t *lock)
 {
     uint32_t spins = 0;
     while (!k_spin_try(lock)) {

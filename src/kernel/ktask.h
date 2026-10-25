@@ -237,7 +237,7 @@ void     ktop(void);                             // dump the task table
 // nothing may call klog() while holding it either - klog takes the console
 // lock, and a core holding the console lock and wanting this one would close
 // the cycle.
-static inline IRAM_ATTR uint32_t k_lock(void)
+static inline K_IRAM uint32_t k_lock(void)
 {
     uint32_t ps;
     __asm__ __volatile__("rsil %0, 3" : "=a"(ps) :: "memory");
@@ -245,7 +245,7 @@ static inline IRAM_ATTR uint32_t k_lock(void)
     return ps;
 }
 
-static inline IRAM_ATTR void k_unlock(uint32_t ps)
+static inline K_IRAM void k_unlock(uint32_t ps)
 {
     k_spin_unlock(&k_sched_lock);
     __asm__ __volatile__("wsr %0, ps; rsync" :: "a"(ps) : "memory");

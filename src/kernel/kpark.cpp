@@ -1,6 +1,6 @@
 #include "kernel/kpark.h"
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "esp_rom_sys.h"
 #include "esp_timer.h"
 #include "soc/interrupts.h"
@@ -12,8 +12,8 @@
 #include "kernel/ktask.h"
 
 // Everything core 1 reads while parked is here, in DRAM.
-static volatile DRAM_ATTR uint32_t s_park_req;   // core 0 -> core 1
-static volatile DRAM_ATTR uint32_t s_parked;     // core 1 -> core 0
+static volatile K_DRAM uint32_t s_park_req;   // core 0 -> core 1
+static volatile K_DRAM uint32_t s_parked;     // core 1 -> core 0
 
 // Core 0 only.
 static uint32_t      s_depth;
@@ -21,12 +21,12 @@ static bool          s_holding;          // this begin() really parked core 1
 static int64_t       s_park_start_us;
 static kpark_stats_t s_st;
 
-static inline IRAM_ATTR void barrier(void)
+static inline K_IRAM void barrier(void)
 {
     __asm__ __volatile__("memw" ::: "memory");
 }
 
-IRAM_ATTR void kpark_init_core1(void)
+K_IRAM void kpark_init_core1(void)
 {
     // Routed to core 1 only. kcore1_boot has already pointed every source on
     // core 1 at nothing; this is the one it listens to besides its own timer.
@@ -39,7 +39,7 @@ IRAM_ATTR void kpark_init_core1(void)
     __asm__ __volatile__("wsr %0, intenable; rsync" :: "a"(ie));
 }
 
-IRAM_ATTR void kpark_isr(void)
+K_IRAM void kpark_isr(void)
 {
     // A level-triggered source: it stays asserted until written back to 0,
     // and would re-enter us the moment we returned.
@@ -152,7 +152,7 @@ extern "C" void __real_spi_flash_enable_interrupts_caches_and_other_cpu(void);
 // The cache is still on when this runs, so calling into the park code - which
 // lives in flash - is fine. It has to happen HERE, before the real function
 // turns the cache off.
-extern "C" IRAM_ATTR void __wrap_spi_flash_disable_interrupts_caches_and_other_cpu(void)
+extern "C" K_IRAM void __wrap_spi_flash_disable_interrupts_caches_and_other_cpu(void)
 {
     s_st.flash_ops++;
     if (!kpark_begin(KPARK_FLASH_TIMEOUT_US)) s_st.unparked++;
@@ -162,7 +162,7 @@ extern "C" IRAM_ATTR void __wrap_spi_flash_disable_interrupts_caches_and_other_c
 // The mirror image: this is entered with the cache OFF, so it is IRAM and may
 // touch nothing in flash until the real function has turned the cache back
 // on. Only then is core 1 released.
-extern "C" IRAM_ATTR void __wrap_spi_flash_enable_interrupts_caches_and_other_cpu(void)
+extern "C" K_IRAM void __wrap_spi_flash_enable_interrupts_caches_and_other_cpu(void)
 {
     __real_spi_flash_enable_interrupts_caches_and_other_cpu();
     kpark_end();

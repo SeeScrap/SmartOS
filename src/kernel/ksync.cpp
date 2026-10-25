@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "kernel/klog.h"
 
 // Everything here runs on core 1 as often as core 0, and all of it is reachable
@@ -17,14 +17,14 @@
 // --- wait sets -------------------------------------------------------------
 // Both helpers must be called with the scheduler lock already held.
 
-static inline IRAM_ATTR void wait_add(k_waitset_t *set, const k_tcb_t *t)
+static inline K_IRAM void wait_add(k_waitset_t *set, const k_tcb_t *t)
 {
     *set |= (k_waitset_t)(1u << t->id);
 }
 
 // Wakes the lowest-numbered waiter and takes it out of the set. Returns false
 // if there was nobody waiting.
-static IRAM_ATTR bool wake_one(k_waitset_t *set)
+static K_IRAM bool wake_one(k_waitset_t *set)
 {
     if (*set == 0) return false;
 
@@ -48,7 +48,7 @@ static IRAM_ATTR bool wake_one(k_waitset_t *set)
 // holds the resource: between being woken and running again, another task on
 // the other core may have taken it. Every wait in this file is therefore a
 // loop, not an if.
-static IRAM_ATTR void block_on(k_waitset_t *set, uint32_t *ps)
+static K_IRAM void block_on(k_waitset_t *set, uint32_t *ps)
 {
     k_tcb_t *me = k_current();
     if (!me) {
@@ -70,14 +70,14 @@ static IRAM_ATTR void block_on(k_waitset_t *set, uint32_t *ps)
 
 // --- mutex -----------------------------------------------------------------
 
-IRAM_ATTR void k_mutex_init(k_mutex_t *m, const char *name)
+K_IRAM void k_mutex_init(k_mutex_t *m, const char *name)
 {
     m->owner   = nullptr;
     m->waiters = 0;
     m->name    = name;
 }
 
-IRAM_ATTR bool k_mutex_try_lock(k_mutex_t *m)
+K_IRAM bool k_mutex_try_lock(k_mutex_t *m)
 {
     uint32_t ps = k_lock();
     bool got = (m->owner == nullptr);
@@ -86,7 +86,7 @@ IRAM_ATTR bool k_mutex_try_lock(k_mutex_t *m)
     return got;
 }
 
-IRAM_ATTR void k_mutex_lock(k_mutex_t *m)
+K_IRAM void k_mutex_lock(k_mutex_t *m)
 {
     bool recursive = false;
     uint32_t ps = k_lock();
@@ -112,7 +112,7 @@ IRAM_ATTR void k_mutex_lock(k_mutex_t *m)
     }
 }
 
-IRAM_ATTR void k_mutex_unlock(k_mutex_t *m)
+K_IRAM void k_mutex_unlock(k_mutex_t *m)
 {
     bool not_owner = false;
 
@@ -133,7 +133,7 @@ IRAM_ATTR void k_mutex_unlock(k_mutex_t *m)
 
 // --- counting semaphore ----------------------------------------------------
 
-IRAM_ATTR void k_sem_init(k_sem_t *s, uint32_t initial, uint32_t max,
+K_IRAM void k_sem_init(k_sem_t *s, uint32_t initial, uint32_t max,
                           const char *name)
 {
     s->count   = initial;
@@ -142,7 +142,7 @@ IRAM_ATTR void k_sem_init(k_sem_t *s, uint32_t initial, uint32_t max,
     s->name    = name;
 }
 
-IRAM_ATTR bool k_sem_try_take(k_sem_t *s)
+K_IRAM bool k_sem_try_take(k_sem_t *s)
 {
     uint32_t ps = k_lock();
     bool got = (s->count > 0);
@@ -151,7 +151,7 @@ IRAM_ATTR bool k_sem_try_take(k_sem_t *s)
     return got;
 }
 
-IRAM_ATTR void k_sem_take(k_sem_t *s)
+K_IRAM void k_sem_take(k_sem_t *s)
 {
     uint32_t ps = k_lock();
     while (s->count == 0) {
@@ -161,7 +161,7 @@ IRAM_ATTR void k_sem_take(k_sem_t *s)
     k_unlock(ps);
 }
 
-IRAM_ATTR void k_sem_give(k_sem_t *s)
+K_IRAM void k_sem_give(k_sem_t *s)
 {
     bool overflow = false;
 
@@ -182,7 +182,7 @@ IRAM_ATTR void k_sem_give(k_sem_t *s)
 
 // --- message queue ---------------------------------------------------------
 
-IRAM_ATTR void k_queue_init(k_queue_t *q, void *storage, size_t item_size,
+K_IRAM void k_queue_init(k_queue_t *q, void *storage, size_t item_size,
                             size_t capacity, const char *name)
 {
     q->buf          = (uint8_t *)storage;
@@ -196,21 +196,21 @@ IRAM_ATTR void k_queue_init(k_queue_t *q, void *storage, size_t item_size,
 }
 
 // Both of these assume the lock is held.
-static inline IRAM_ATTR void q_push(k_queue_t *q, const void *item)
+static inline K_IRAM void q_push(k_queue_t *q, const void *item)
 {
     size_t tail = (q->head + q->count) % q->capacity;
     memcpy(q->buf + tail * q->item_size, item, q->item_size);
     q->count++;
 }
 
-static inline IRAM_ATTR void q_pop(k_queue_t *q, void *out)
+static inline K_IRAM void q_pop(k_queue_t *q, void *out)
 {
     memcpy(out, q->buf + q->head * q->item_size, q->item_size);
     q->head = (q->head + 1) % q->capacity;
     q->count--;
 }
 
-IRAM_ATTR bool k_queue_try_send(k_queue_t *q, const void *item)
+K_IRAM bool k_queue_try_send(k_queue_t *q, const void *item)
 {
     uint32_t ps = k_lock();
     bool room = (q->count < q->capacity);
@@ -222,7 +222,7 @@ IRAM_ATTR bool k_queue_try_send(k_queue_t *q, const void *item)
     return room;
 }
 
-IRAM_ATTR void k_queue_send(k_queue_t *q, const void *item)
+K_IRAM void k_queue_send(k_queue_t *q, const void *item)
 {
     uint32_t ps = k_lock();
     while (q->count == q->capacity) {
@@ -233,7 +233,7 @@ IRAM_ATTR void k_queue_send(k_queue_t *q, const void *item)
     k_unlock(ps);
 }
 
-IRAM_ATTR bool k_queue_try_recv(k_queue_t *q, void *out)
+K_IRAM bool k_queue_try_recv(k_queue_t *q, void *out)
 {
     uint32_t ps = k_lock();
     bool had = (q->count > 0);
@@ -245,7 +245,7 @@ IRAM_ATTR bool k_queue_try_recv(k_queue_t *q, void *out)
     return had;
 }
 
-IRAM_ATTR void k_queue_recv(k_queue_t *q, void *out)
+K_IRAM void k_queue_recv(k_queue_t *q, void *out)
 {
     uint32_t ps = k_lock();
     while (q->count == 0) {
@@ -256,7 +256,7 @@ IRAM_ATTR void k_queue_recv(k_queue_t *q, void *out)
     k_unlock(ps);
 }
 
-IRAM_ATTR size_t k_queue_count(const k_queue_t *q)
+K_IRAM size_t k_queue_count(const k_queue_t *q)
 {
     return q->count;
 }

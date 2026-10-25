@@ -17,6 +17,7 @@ file(GLOB SMARTOS_APP_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/apps/*.cpp")
 idf_component_register(
     SRCS
         "main.cpp"
+        "port/kport_esp32s3.cpp"
         "boot_gfx.cpp"
         "system.cpp"
         "tests/harness.cpp"

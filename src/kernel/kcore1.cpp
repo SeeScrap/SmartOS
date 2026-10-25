@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "esp_attr.h"
+#include "port/kport.h"
 #include "esp_cpu.h"
 #include "esp_rom_sys.h"
 #include "hal/cpu_utility_ll.h"
@@ -30,9 +30,9 @@ static kcore1_entry_t s_entry   = nullptr;
 // First instruction of ours that core 1 ever executes.
 //
 // It arrives here from the ROM app-cpu stub with a stack the ROM picked, no
-// interrupts configured, and VECBASE at its reset value. IRAM_ATTR because the
+// interrupts configured, and VECBASE at its reset value. K_IRAM because the
 // core has to be able to run this whether or not the flash cache is available.
-extern "C" void IRAM_ATTR kcore1_boot(void)
+extern "C" void K_IRAM kcore1_boot(void)
 {
     // Before anything else: a vector table that is ours and that can service a
     // window overflow. Until this line runs, the first function call core 1
@@ -116,7 +116,7 @@ bool kcore1_is_up(void)
 // ---------------------------------------------------------------------------
 extern "C" void __real_esp_restart_noos(void) __attribute__((noreturn));
 
-extern "C" IRAM_ATTR __attribute__((noreturn)) void __wrap_esp_restart_noos(void)
+extern "C" K_IRAM __attribute__((noreturn)) void __wrap_esp_restart_noos(void)
 {
     ets_set_appcpu_boot_addr(0);            // if it wakes, there is nowhere to go
     esp_rom_software_reset_cpu(1);          // IDF's order: reset before stall,
