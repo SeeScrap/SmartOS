@@ -15,10 +15,10 @@
 // interrupt, and somewhere to carve its heap from at boot.
 //
 // Before R4 the kernel reached for those directly, which is how
-// components/smartos/kernel/kmbox.cpp came to include board/hal_time.h and pull FreeRTOS in
-// behind it: the kernel depended on the HAL, which depended on the operating
-// system the kernel was supposed to be replacing. This file is the seam that
-// reverses that. The kernel calls kport_*; the implementation for this chip
+// components/smartos/kernel/kmbox.cpp came to include the board's own
+// time header and pull FreeRTOS in behind it: the kernel depended on the
+// HAL, which depended on the operating system the kernel was supposed to be
+// replacing. This file is the seam that reverses that. The kernel calls kport_*; the implementation for this chip
 // is components/smartos/port/kport.cpp.
 //
 // WHY THERE IS NO STRUCT OF FUNCTION POINTERS
@@ -41,6 +41,7 @@
 #include "esp_attr.h"
 #include "esp_cpu.h"
 #include "esp_rom_sys.h"
+#include "esp_timer.h"
 
 #include "smartos_config.h"
 
@@ -93,6 +94,14 @@ static inline void kport_delay_us(uint32_t us) { esp_rom_delay_us(us); }
 // K_JOB_SLEEP handler is the caller - core 1 asks core 0 to wait, precisely
 // because core 1 cannot wait this way itself.
 extern "C" void kport_yield_ms(uint32_t ms);
+
+// The wall clock, in microseconds since boot. Not the kernel's clock: the
+// kernel counts its own ticks (k_millis in kernel/ktime.h) and that is the
+// one that stops when core 1 stops. This one is the chip's timer, and it is
+// what the operating system, the tests and the benchmarks measure with -
+// including measuring the kernel's clock against it.
+static inline int64_t  kport_now_us(void) { return esp_timer_get_time(); }
+static inline uint32_t kport_now_ms(void) { return (uint32_t)(esp_timer_get_time() / 1000); }
 
 
 // --- which core is asking ---------------------------------------------------

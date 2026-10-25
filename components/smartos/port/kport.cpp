@@ -51,9 +51,10 @@ extern "C" void kport_println(const char *s)
 }
 
 
-// Core 0 only. hal_delay_ms() is the same call; the kernel reaches it through
-// here so that kernel/kmbox.cpp does not have to include the HAL, which would
-// pull FreeRTOS into the kernel directory.
+// Core 0 only. The whole system waits through this one call now: until R8
+// there was a second copy of it in board/hal_time.h, a static inline that
+// 31 call sites used and that pulled FreeRTOS into every file that included
+// it. Two names for one call is how the two drift apart.
 extern "C" void kport_yield_ms(uint32_t ms)
 {
     vTaskDelay(ms / portTICK_PERIOD_MS);

@@ -13,7 +13,7 @@
 #include "os/evbus.h"
 #include "kernel/kfmt.h"
 #include "os/krand.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/log.h"
 #include "system.h"

@@ -21,7 +21,7 @@
 #include "board/devkitc_n16r8.h"
 #include "gfx/fb.h"
 #include "gfx/text.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/lcd_bus.h"
 #include "board/lcd_panel.h"
@@ -55,17 +55,17 @@ void gfx_bringup(void)
     logln();
     logln("--- stage 3.2: framebuffer in PSRAM ---");
 
-    int64_t t0 = hal_micros();
+    int64_t t0 = kport_now_us();
     fb_clear(&s_fb, FB_BLACK);
-    double memset_ms = (hal_micros() - t0) / 1000.0;
+    double memset_ms = (kport_now_us() - t0) / 1000.0;
 
-    t0 = hal_micros();
+    t0 = kport_now_us();
     fb_clear(&s_fb, FB_BLUE);
-    double write_ms = (hal_micros() - t0) / 1000.0;
+    double write_ms = (kport_now_us() - t0) / 1000.0;
 
-    t0 = hal_micros();
+    t0 = kport_now_us();
     fb_fill_rect(&s_fb, 20, 20, 200, 120, FB_RED);
-    double rect_ms = (hal_micros() - t0) / 1000.0;
+    double rect_ms = (kport_now_us() - t0) / 1000.0;
 
     logf("  clear (memset path) : %6.2f ms  %5.1f MB/s\n",
          memset_ms, (s_fb.bytes / 1e6) / (memset_ms / 1000.0));
@@ -76,14 +76,14 @@ void gfx_bringup(void)
     // Now the way out. Staged copies PSRAM into internal RAM first; direct asks
     // the DMA engine to read PSRAM itself, which is worth a great deal if it
     // works at all.
-    t0 = hal_micros();
+    t0 = kport_now_us();
     fb_present(&s_fb);
-    double staged_ms = (hal_micros() - t0) / 1000.0;
+    double staged_ms = (kport_now_us() - t0) / 1000.0;
 
-    t0 = hal_micros();
+    t0 = kport_now_us();
     lcd_blit_wire_direct(0, 0, s_fb.w, s_fb.h, (const uint8_t *)s_fb.px,
                          (size_t)s_fb.w * 2);
-    double direct_ms = (hal_micros() - t0) / 1000.0;
+    double direct_ms = (kport_now_us() - t0) / 1000.0;
 
     logf("  present, staged     : %6.2f ms  %5.1f FPS\n",
          staged_ms, 1000.0 / staged_ms);
@@ -200,9 +200,9 @@ static void benchmark_mode(const char *label, lcd_xfer_mode_t mode)
     lcd_bus_set_mode(mode);
 
     uint32_t spin0 = s_cpu_probe;
-    int64_t  t0    = hal_micros();
+    int64_t  t0    = kport_now_us();
     for (int i = 0; i < frames; ++i) lcd_fill_screen(colors[i]);
-    int64_t  dt    = hal_micros() - t0;
+    int64_t  dt    = kport_now_us() - t0;
     uint32_t spins = s_cpu_probe - spin0;
 
     double per_frame_ms = (dt / 1000.0) / frames;
@@ -234,7 +234,7 @@ void benchmark(void)
 
     vTaskPrioritySet(NULL, was);
     s_cpu_probe_run = false;
-    hal_delay_ms(5);            // let the probe task retire
+    kport_yield_ms(5);            // let the probe task retire
 
     logln("'other work done' is the point: the bytes go out at the same rate");
     logln("either way, but polling spends the whole transfer watching a FIFO.");

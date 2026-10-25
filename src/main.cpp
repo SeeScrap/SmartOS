@@ -33,7 +33,7 @@
 #include "sdkconfig.h"
 
 #include "board/devkitc_n16r8.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/lcd_bus.h"
 #include "gfx/fb.h"
@@ -332,7 +332,7 @@ static void wake_core1(void)
 
     // Core 1 prints through the ROM console with no locking, so give its
     // output a moment to drain before core 0 talks over it.
-    hal_delay_ms(20);
+    kport_yield_ms(20);
 
     if (ok) {
         logln("[core0] core 1 answered - it is running our code now");
@@ -352,7 +352,7 @@ static void wake_core1(void)
                 break;
             }
             if (kfault_pending()) { kfault_report(); break; }
-            hal_delay_ms(2);
+            kport_yield_ms(2);
         }
 #ifdef SMARTOS_ENABLE_SMP
         logf("[core0] cpu0idle asked the scheduler %lu times; spin stuck on 0x%08lx\n",
@@ -379,7 +379,7 @@ static void wake_core1(void)
         // The tick lives entirely inside core 1, so the only proof it is
         // running is watching its counter move from over here.
         uint32_t t1 = k_tick_count;
-        hal_delay_ms(100);
+        kport_yield_ms(100);
         logf("[core0] core 1 tick counter: %lu -> %lu over 100 ms (%s)\n",
              (unsigned long)t1, (unsigned long)k_tick_count,
              (k_tick_count > t1) ? "CCOMPARE0 interrupt is firing"
@@ -400,7 +400,7 @@ static void wake_core1(void)
 extern "C" void app_main(void)
 {
     log_init();
-    hal_delay_ms(1000);                // let the USB console attach
+    kport_yield_ms(1000);                // let the USB console attach
 
     report_memory();
     alloc_framebuffer();
@@ -571,12 +571,12 @@ extern "C" void app_main(void)
             FILE *f = fopen("/fs/sys/panic_test", "w");
             if (f) { fputs("crash once\n", f); fclose(f); }
             logln("  core 1 is running; crashing core 0 on purpose now");
-            hal_delay_ms(50);
+            kport_yield_ms(50);
             abort();
         }
         unlink("/fs/sys/panic_test");
         const uint32_t t0 = k_tick_count;
-        hal_delay_ms(100);
+        kport_yield_ms(100);
         const uint32_t ticks = k_tick_count - t0;
         char d[96];
         snprintf(d, sizeof(d), "reset: %s; core 1 faults %u; %lu ticks in 100 ms",

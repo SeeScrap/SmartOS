@@ -10,7 +10,7 @@
 #include "apps/apps.h"
 #include "os/app.h"
 #include "os/evbus.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/log.h"
 #include "system.h"

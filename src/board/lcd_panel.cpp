@@ -3,7 +3,7 @@
 #include "driver/ledc.h"
 
 #include "board/gpio.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -149,15 +149,15 @@ static void run_table(const uint8_t *t)
         uint8_t n     = count & 0x7F;
         lcd_cmd_p(cmd, t, n);
         t += n;
-        if (count & TBL_DELAY) hal_delay_ms(150);
+        if (count & TBL_DELAY) kport_yield_ms(150);
     }
 }
 
 static void hw_reset(void)
 {
-    gpio_hi(PIN_LCD_RST); hal_delay_ms(10);
-    gpio_lo(PIN_LCD_RST);  hal_delay_ms(20);
-    gpio_hi(PIN_LCD_RST); hal_delay_ms(150);
+    gpio_hi(PIN_LCD_RST); kport_yield_ms(10);
+    gpio_lo(PIN_LCD_RST);  kport_yield_ms(20);
+    gpio_hi(PIN_LCD_RST); kport_yield_ms(150);
 }
 
 // MADCTL bits: MY 0x80, MX 0x40, MV 0x20, BGR 0x08

@@ -29,7 +29,7 @@
 #include "os/screen.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/lcd_panel.h"
 #include "board/log.h"
@@ -358,12 +358,12 @@ void sys52_kill_test(void)
         const int id = app_start(&app_kt_mboxer);
         pump(300);
         const uint32_t r0 = app_kt_reads();
-        hal_delay_ms(20);                                // no service: the call waits
+        kport_yield_ms(20);                                // no service: the call waits
         const app_ctx_t *c = app_get(id);
         const char *was = task_state_name(c ? c->task : -1);
         const uint32_t served0 = kmbox_served_count();
         const int r = app_kill(id);
-        hal_delay_ms(3);                                 // a tick or two: switched out
+        kport_yield_ms(3);                                 // a tick or two: switched out
         app_poll();
         const int ms = wait_gone(id, 500);
         uint32_t fc = 0, fp = 0, fd = 0;
@@ -448,7 +448,7 @@ static void measure(window_t *w, uint32_t ms, bool flash)
             next_write += 100000;
         }
         system_pass();
-        hal_delay_ms(1);
+        kport_yield_ms(1);
     }
 
     k_cpu_time(1, &b);

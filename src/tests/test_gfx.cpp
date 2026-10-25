@@ -7,7 +7,7 @@
 
 #include "gfx/fb.h"
 #include "gfx/text.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/lcd_bus.h"
 #include "board/lcd_panel.h"
 #include "board/log.h"
@@ -135,9 +135,9 @@ static void damage_cost_test(double *full_ms_out)
         fb_damage_reset(&s_fb);
         fb_damage(&s_fb, sizes[i].x, sizes[i].y, sizes[i].w, sizes[i].h);
 
-        int64_t t0 = hal_micros();
+        int64_t t0 = kport_now_us();
         fb_flush(&s_fb);
-        double ms = (hal_micros() - t0) / 1000.0;
+        double ms = (kport_now_us() - t0) / 1000.0;
 
         size_t bytes = (size_t)sizes[i].w * sizes[i].h * 2;
         if (i == N - 1) *full_ms_out = ms;
@@ -177,7 +177,7 @@ static void damage_frame_test(double full_ms)
         int nx = x + dx;
         if (nx < 0 || nx + BW > s_fb.w) { dx = -dx; nx = x + dx; }
 
-        int64_t t0 = hal_micros();
+        int64_t t0 = kport_now_us();
 
         fb_fill_rect(&s_fb, x,  BY, BW, BH, bg);    // erase where it was
         fb_fill_rect(&s_fb, nx, BY, BW, BH, box);   // draw where it is now
@@ -188,10 +188,10 @@ static void damage_frame_test(double full_ms)
         total_px += fb_damage_pixels(&s_fb);
 
         fb_flush(&s_fb);
-        busy_us += hal_micros() - t0;
+        busy_us += kport_now_us() - t0;
 
         x = nx;
-        hal_delay_ms(8);            // outside the measurement: this is for eyes
+        kport_yield_ms(8);            // outside the measurement: this is for eyes
     }
 
     double per_frame_ms = (busy_us / 1000.0) / FRAMES;
@@ -246,9 +246,9 @@ static void chunk_fixed_cost(void)
 
     const int N = 200;
 
-    int64_t t0 = hal_micros();
+    int64_t t0 = kport_now_us();
     for (int i = 0; i < N; ++i) lcd_set_window(0, 0, 40, 20);
-    double win_us = (double)(hal_micros() - t0) / N;
+    double win_us = (double)(kport_now_us() - t0) / N;
 
     logf("  address window (CASET+RASET+RAMWR) : %6.1f us, whatever the size\n",
          win_us);
@@ -271,19 +271,19 @@ static void chunk_overlap_cost(void)
     logln("--- stage 3.4b: is the second staging buffer earning its keep? ---");
 
     lcd_bus_set_mode(LCD_XFER_POLLING);
-    int64_t t0 = hal_micros();
+    int64_t t0 = kport_now_us();
     fb_present(&s_fb);
-    double poll_ms = (hal_micros() - t0) / 1000.0;
+    double poll_ms = (kport_now_us() - t0) / 1000.0;
 
     lcd_bus_set_mode(LCD_XFER_QUEUED);
-    t0 = hal_micros();
+    t0 = kport_now_us();
     fb_present(&s_fb);
-    double queue_ms = (hal_micros() - t0) / 1000.0;
+    double queue_ms = (kport_now_us() - t0) / 1000.0;
 
-    t0 = hal_micros();
+    t0 = kport_now_us();
     lcd_blit_wire_direct(0, 0, s_fb.w, s_fb.h, (const uint8_t *)s_fb.px,
                          (size_t)s_fb.w * 2);
-    double direct_ms = (hal_micros() - t0) / 1000.0;
+    double direct_ms = (kport_now_us() - t0) / 1000.0;
 
     const double wire_ms = 153600.0 * 8.0 / 80e6 * 1000.0;
 
@@ -365,12 +365,12 @@ static void text_cost_test(void)
     };
 
     for (unsigned i = 0; i < sizeof(runs) / sizeof(runs[0]); ++i) {
-        int64_t t0 = hal_micros();
+        int64_t t0 = kport_now_us();
         for (int n = 0; n < N; ++n) {
             if (runs[i].opaque) fb_text_bg(&s_fb, 0, 100, line, FB_WHITE, FB_BLACK, runs[i].scale);
             else                fb_text   (&s_fb, 0, 100, line, FB_WHITE,           runs[i].scale);
         }
-        double us = (double)(hal_micros() - t0) / N;
+        double us = (double)(kport_now_us() - t0) / N;
 
         // Only the part on screen is drawn; at scale 2 that is 26 of the 43.
         int drawn = s_fb.w / (TEXT_CELL_W * runs[i].scale);
@@ -436,21 +436,21 @@ static void text_counter_test(void)
     const int      N   = 200;
 
     char    buf[48];
-    int64_t start = hal_micros();
+    int64_t start = kport_now_us();
     int64_t busy_us = 0;
     size_t  px = 0;
 
     for (int i = 1; i <= N; ++i) {
-        double up = (double)(hal_micros() - start) / 1e6;
+        double up = (double)(kport_now_us() - start) / 1e6;
 
-        int64_t t0 = hal_micros();
+        int64_t t0 = kport_now_us();
         snprintf(buf, sizeof(buf), "uptime %7.3f s   update %3d/%d", up, i, N);
         fb_text_bg(&s_fb, 6, 222, buf, FB_WHITE, bar, 1);
         px += fb_damage_pixels(&s_fb);
         fb_flush(&s_fb);
-        busy_us += hal_micros() - t0;
+        busy_us += kport_now_us() - t0;
 
-        hal_delay_ms(20);           // outside the measurement: this is for eyes
+        kport_yield_ms(20);           // outside the measurement: this is for eyes
     }
 
     double per = (double)busy_us / N;

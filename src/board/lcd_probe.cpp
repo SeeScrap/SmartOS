@@ -1,7 +1,7 @@
 #include "board/lcd_probe.h"
 
 #include "board/gpio.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/devkitc_n16r8.h"
 #include "board/log.h"
 
@@ -40,9 +40,9 @@ static void bb_pins_as_gpio(void)
 
 static void bb_reset_panel(void)
 {
-    gpio_hi(PIN_LCD_RST); hal_delay_ms(10);
-    gpio_lo(PIN_LCD_RST);  hal_delay_ms(20);
-    gpio_hi(PIN_LCD_RST); hal_delay_ms(150);
+    gpio_hi(PIN_LCD_RST); kport_yield_ms(10);
+    gpio_lo(PIN_LCD_RST);  kport_yield_ms(20);
+    gpio_hi(PIN_LCD_RST); kport_yield_ms(150);
 }
 
 static void bb_write_byte(uint8_t v)

@@ -15,7 +15,7 @@
 #include "os/settings.h"
 #include "ui/keyboard.h"
 #include <unistd.h>
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/log.h"
 #include "system.h"

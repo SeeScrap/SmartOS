@@ -22,7 +22,7 @@
 #include "port/kpark.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/log.h"
 #include "tests/harness.h"
 
@@ -94,7 +94,7 @@ void park_smoke_test(void)
         esp_err_t err = esp_partition_read(p, (uint32_t)(i % (p->size / 4096u)) * 4096u, buf, sizeof(buf));
         PARK_END();
         if (err == ESP_OK) ok++; else errs++;
-        hal_delay_ms(2);
+        kport_yield_ms(2);
     }
 
     const uint32_t kms = k_millis() - k0;
@@ -180,7 +180,7 @@ void park_flash_test(void)
         if (e1 == ESP_OK && e2 == ESP_OK && e3 == ESP_OK &&
             memcmp(wbuf, rbuf, sizeof(wbuf)) == 0) ok++;
         else bad++;
-        hal_delay_ms(10);                   // let core 1 run between rounds
+        kport_yield_ms(10);                   // let core 1 run between rounds
     }
 
     const uint32_t kms = k_millis() - k0;

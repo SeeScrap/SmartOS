@@ -34,7 +34,7 @@
 #include "os/shell.h"
 #include "os/syslog.h"
 #include "os/sysinfo.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/lcd_panel.h"
 #include "board/log.h"
@@ -135,7 +135,7 @@ void system_loop(void)
     const int64_t demo_t0 = esp_timer_get_time();
     while ((esp_timer_get_time() - demo_t0) / 1000 < GFX_DEMO_HOLD_MS) {
         kmbox_service();
-        hal_delay_ms(2);
+        kport_yield_ms(2);
     }
 #endif
 #endif
@@ -272,6 +272,6 @@ void system_loop(void)
             next_alive = now + 15000;
         }
 
-        hal_delay_ms(2);
+        kport_yield_ms(2);
     }
 }

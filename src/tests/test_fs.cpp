@@ -15,7 +15,7 @@
 #include "os/app.h"
 #include "os/dev.h"
 #include "os/fs.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/log.h"
 #include "system.h"

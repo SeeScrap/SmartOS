@@ -16,7 +16,7 @@
 #include "os/screen.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "board/hal_time.h"
+#include "port/kport.h"
 #include "board/input.h"
 #include "board/log.h"
 #include "system.h"
