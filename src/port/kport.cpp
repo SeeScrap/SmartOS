@@ -21,7 +21,7 @@
 // both cores in it, before this existed.
 //
 // k_sched_lock and k_spin_stuck are the scheduler's, and are defined beside it
-// because all three were defined together in s3hal/log.cpp until R4b and there
+// because all three were defined together in board/log.cpp until R4b and there
 // is no reason to scatter them now.
 extern "C" {
     k_spin_t          k_console_lock = 0;

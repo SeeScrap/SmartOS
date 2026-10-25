@@ -8,7 +8,7 @@
 #include "os/evbus.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "s3hal/lcd_panel.h"
+#include "board/lcd_panel.h"
 
 enum { SCREEN_JOB = KMBOX_OP_EXT + 16 };   // settings has +14
 

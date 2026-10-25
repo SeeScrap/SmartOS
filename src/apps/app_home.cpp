@@ -19,7 +19,7 @@
 #include "gfx/text.h"
 #include "os/kfmt.h"
 #include "os/settings.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 #include "ui/ui.h"
 #include "gfx/wallpaper.h"
 

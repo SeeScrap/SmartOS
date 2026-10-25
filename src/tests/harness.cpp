@@ -7,9 +7,9 @@
 
 #include "os/evbus.h"
 #include "os/syslog.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "board/hal_time.h"
+#include "board/input.h"
+#include "board/log.h"
 #include "system.h"
 
 void sdk_case(const char *what, bool ok, const char *detail)

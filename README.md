@@ -59,7 +59,7 @@ src/kernel/     the kernel: vector table, scheduler, context switch, allocator,
 src/os/         services the apps are built on: event bus, app model, files,
                 settings, system log, shell, screen, radio   (4,700 lines)
 src/gfx/        framebuffer, damage tracking, 5x8 font, pictures
-src/s3hal/      the board: SPI panel, buttons, console
+src/board/      the board: SPI panel, buttons, console
 src/ui/         what every app's screen is made of: lists, bars, confirmation,
                 the on-screen keyboard
 src/apps/       the apps, one file each - drop a file in, it registers itself
@@ -116,7 +116,7 @@ Two environment constraints, both learned the hard way:
 
 * **No spaces anywhere in the project path.** ESP-IDF's build system rejects
   them outright, which is why this folder is `Project_S3`.
-* **Our HAL is `src/s3hal/`, not `src/hal/`.** IDF ships its own
+* **Our HAL is `src/board/`, not `src/hal/`.** IDF ships its own
   `hal/log.h`, and a quoted include from inside a directory called `hal`
   finds IDF's copy instead of ours. See the note in [src/CMakeLists.txt](src/CMakeLists.txt).
 

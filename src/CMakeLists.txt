@@ -1,4 +1,4 @@
-# NOTE: our HAL lives in src/s3hal/, not src/hal/, on purpose.
+# NOTE: our HAL lives in src/board/, not src/hal/, on purpose.
 # ESP-IDF ships components/hal/platform_port/include/hal/log.h. A quoted
 # include from inside src/hal/ searches its own directory first, misses, then
 # falls through to the include path and picks up IDF's hal/log.h instead of
@@ -35,11 +35,11 @@ idf_component_register(
         "tests/test_limits.cpp"
         "tests/test_look.cpp"
         "tests/test_radio.cpp"
-        "s3hal/log.cpp"
-        "s3hal/lcd_bus.cpp"
-        "s3hal/lcd_panel.cpp"
-        "s3hal/lcd_probe.cpp"
-        "s3hal/input.cpp"
+        "board/log.cpp"
+        "board/lcd_bus.cpp"
+        "board/lcd_panel.cpp"
+        "board/lcd_probe.cpp"
+        "board/input.cpp"
         "gfx/fb.cpp"
         "gfx/image.cpp"
         "gfx/wallpaper_data.cpp"

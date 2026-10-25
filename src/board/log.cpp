@@ -1,4 +1,4 @@
-#include "s3hal/log.h"
+#include "board/log.h"
 
 #include <stdarg.h>
 #include <stdio.h>

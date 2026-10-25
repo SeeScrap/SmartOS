@@ -12,7 +12,7 @@
 #include "gfx/text.h"
 #include "kernel/ktime.h"
 #include "os/kfmt.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 #define LOG_LINES 9
 #define LOG_Y     116

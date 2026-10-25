@@ -1,4 +1,4 @@
-#include "s3hal/lcd_bus.h"
+#include "board/lcd_bus.h"
 
 #include <string.h>
 

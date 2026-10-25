@@ -7,10 +7,10 @@
 
 #include "gfx/fb.h"
 #include "gfx/text.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/lcd_bus.h"
-#include "s3hal/lcd_panel.h"
-#include "s3hal/log.h"
+#include "board/hal_time.h"
+#include "board/lcd_bus.h"
+#include "board/lcd_panel.h"
+#include "board/log.h"
 #include "system.h"
 #include "tests/harness.h"
 

@@ -12,7 +12,7 @@
 
 #include "kernel/kmbox.h"
 #include "os/kfmt.h"
-#include "s3hal/log.h"
+#include "board/log.h"
 
 #define FS_BASE   "/fs"
 #define FS_APPS   FS_BASE "/apps"

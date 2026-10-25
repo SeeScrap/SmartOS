@@ -23,7 +23,7 @@
 #include "os/fs.h"
 #include "os/kfmt.h"
 #include "os/syslog.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 #include "ui/keyboard.h"
 #include "ui/ui.h"
 

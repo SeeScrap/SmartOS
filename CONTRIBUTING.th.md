@@ -126,7 +126,7 @@ stage 5.4c แก้ไป
 src/kernel/   ตัวจัดคิว การสลับงาน ตัวจัดการหน่วยความจำ mailbox ตัวล็อก การ park คอร์
 src/os/       event bus, app model, ไฟล์, settings, log, เชลล์, จอ, วิทยุ
 src/gfx/      framebuffer, damage tracking, ฟอนต์, รูปภาพ
-src/s3hal/    ตัวบอร์ดเอง: จอ SPI, ปุ่ม, คอนโซล
+src/board/    ตัวบอร์ดเอง: จอ SPI, ปุ่ม, คอนโซล
 src/ui/       ชิ้นส่วนที่ประกอบเป็นหน้าจอของทุกแอป
 src/apps/     ตัวแอป
 src/tests/    ทุกข้ออ้างใน README ในรูปของโค้ดที่รันจริง

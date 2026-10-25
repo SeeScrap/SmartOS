@@ -14,7 +14,7 @@
 
 #include "gfx/text.h"
 #include "os/kfmt.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 // Everything the app remembers. The runtime allocates it zeroed and hands it
 // back as c->user in every callback.

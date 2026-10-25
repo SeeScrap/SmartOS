@@ -1,9 +1,9 @@
-#include "s3hal/lcd_probe.h"
+#include "board/lcd_probe.h"
 
-#include "s3hal/gpio.h"
-#include "s3hal/hal_time.h"
+#include "board/gpio.h"
+#include "board/hal_time.h"
 #include "board/devkitc_n16r8.h"
-#include "s3hal/log.h"
+#include "board/log.h"
 
 // How many clocks the panel wants between the command and its answer.
 //

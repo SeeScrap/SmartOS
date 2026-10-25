@@ -11,7 +11,7 @@
 #include "esp_wifi.h"
 #include "nvs_flash.h"
 
-#include "s3hal/log.h"
+#include "board/log.h"
 #include "os/syslog.h"
 
 // Which channels the driver may use is a matter of law, not of radio: the

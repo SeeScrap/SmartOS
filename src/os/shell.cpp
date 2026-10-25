@@ -21,8 +21,8 @@
 #include "os/fs.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "s3hal/input.h"
-#include "s3hal/log.h"
+#include "board/input.h"
+#include "board/log.h"
 
 #define PROMPT     "s3> "
 #define MAX_ARGS   8

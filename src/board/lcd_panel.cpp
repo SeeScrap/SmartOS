@@ -1,15 +1,15 @@
-#include "s3hal/lcd_panel.h"
+#include "board/lcd_panel.h"
 
 #include "driver/ledc.h"
 
-#include "s3hal/gpio.h"
-#include "s3hal/hal_time.h"
+#include "board/gpio.h"
+#include "board/hal_time.h"
 #include <stdlib.h>
 #include <string.h>
 
 #include "board/devkitc_n16r8.h"
-#include "s3hal/lcd_bus.h"
-#include "s3hal/log.h"
+#include "board/lcd_bus.h"
+#include "board/log.h"
 
 // --- init tables -----------------------------------------------------------
 // Encoding: cmd, count, payload...   count bit 0x80 means "delay 150 ms after".

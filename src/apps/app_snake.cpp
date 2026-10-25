@@ -12,7 +12,7 @@
 #include "os/kfmt.h"
 #include "os/fs.h"
 #include "os/krand.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 #define CELL      8
 #define COLS      (LCD_WIDTH / 8)

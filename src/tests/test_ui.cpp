@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "s3hal/log.h"
+#include "board/log.h"
 #include "tests/harness.h"
 #include "ui/keyboard.h"
 #include "ui/ui.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 // ---------------------------------------------------------------------------
 // Stage 5.4c - the app toolkit's rules, checked by script every boot.

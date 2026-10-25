@@ -23,7 +23,7 @@
 #include "os/dev.h"
 #include "os/fs.h"
 #include "os/kfmt.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 #define PLOT_Y     40            // top of the trace area, within the app area
 #define PLOT_H     160

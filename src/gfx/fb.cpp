@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include "esp_heap_caps.h"
-#include "s3hal/lcd_panel.h"
-#include "s3hal/log.h"
+#include "board/lcd_panel.h"
+#include "board/log.h"
 
 bool fb_init(fb_t *fb, uint16_t w, uint16_t h)
 {

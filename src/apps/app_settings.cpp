@@ -16,7 +16,7 @@
 #include "os/kfmt.h"
 #include "os/settings.h"
 #include "os/syslog.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 #include "ui/ui.h"
 
 enum { ROW_BRIGHT, ROW_CLEAR, ROWS };

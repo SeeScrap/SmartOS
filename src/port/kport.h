@@ -15,7 +15,7 @@
 // interrupt, and somewhere to carve its heap from at boot.
 //
 // Before R4 the kernel reached for those directly, which is how
-// src/kernel/kmbox.cpp came to include s3hal/hal_time.h and pull FreeRTOS in
+// src/kernel/kmbox.cpp came to include board/hal_time.h and pull FreeRTOS in
 // behind it: the kernel depended on the HAL, which depended on the operating
 // system the kernel was supposed to be replacing. This file is the seam that
 // reverses that. The kernel calls kport_*; the implementation for this chip
@@ -74,7 +74,7 @@
 #define kport_rom_printf  esp_rom_printf
 
 // CORE 0 uses these: full newlib formatting, under the same console lock, so a
-// line from core 0 and a line from core 1 cannot interleave. s3hal/log.h's
+// line from core 0 and a line from core 1 cannot interleave. board/log.h's
 // logf() and logln() are these two - it keeps the old names for the hundreds
 // of call sites that use them.
 extern "C" void kport_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));

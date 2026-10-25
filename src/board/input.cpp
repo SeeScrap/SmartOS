@@ -1,4 +1,4 @@
-#include "s3hal/input.h"
+#include "board/input.h"
 
 #include "esp_attr.h"
 #include "soc/gpio_reg.h"
@@ -7,7 +7,7 @@
 #include "board/devkitc_n16r8.h"
 #include "os/evbus.h"
 #include "kernel/ktime.h"
-#include "s3hal/gpio.h"
+#include "board/gpio.h"
 
 // Everything below that the sampler touches is DRAM or IRAM - see input.h.
 // Note the const table: without DRAM_ATTR it would be .rodata, which is flash

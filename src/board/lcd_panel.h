@@ -1,6 +1,6 @@
 #pragma once
 #include <stdint.h>
-#include "s3hal/lcd_probe.h"
+#include "board/lcd_probe.h"
 
 #define RGB565(r, g, b) \
     ((uint16_t)((((r) & 0xF8) << 8) | (((g) & 0xFC) << 3) | ((b) >> 3)))

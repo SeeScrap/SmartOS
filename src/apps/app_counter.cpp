@@ -7,7 +7,7 @@
 
 #include "gfx/text.h"
 #include "os/kfmt.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 typedef struct {
     int32_t  value;

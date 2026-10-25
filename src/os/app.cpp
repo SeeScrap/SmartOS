@@ -11,7 +11,7 @@
 #include "os/dev.h"
 #include "os/screen.h"
 #include "os/syslog.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 
 enum { FRAME_IDLE = 0, FRAME_DRAWING, FRAME_READY, FRAME_FLUSHING };
 

@@ -5,8 +5,8 @@
 #include "gfx/text.h"
 #include "os/app.h"
 #include "os/settings.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/lcd_panel.h"
+#include "board/hal_time.h"
+#include "board/lcd_panel.h"
 
 // The look. Near-black rather than black: on this panel a true black next to
 // the dark slate of the mark shows the panel's own backlight unevenness, and

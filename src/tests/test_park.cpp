@@ -22,8 +22,8 @@
 #include "port/kpark.h"
 #include "kernel/ktask.h"
 #include "kernel/ktime.h"
-#include "s3hal/hal_time.h"
-#include "s3hal/log.h"
+#include "board/hal_time.h"
+#include "board/log.h"
 #include "tests/harness.h"
 
 // ---------------------------------------------------------------------------

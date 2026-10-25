@@ -31,7 +31,7 @@
 #include "kernel/ktask.h"
 #include "os/kfmt.h"
 #include "os/sysinfo.h"
-#include "s3hal/input.h"
+#include "board/input.h"
 #include "ui/ui.h"
 
 #define ROWS_Y     64

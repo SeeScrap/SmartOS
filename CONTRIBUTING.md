@@ -133,7 +133,7 @@ app that never yields.
 src/kernel/   scheduler, context switch, allocator, mailbox, locks, the park
 src/os/       event bus, app model, files, settings, log, shell, screen, radio
 src/gfx/      framebuffer, damage tracking, font, pictures
-src/s3hal/    the board itself: panel, buttons, console
+src/board/    the board itself: panel, buttons, console
 src/ui/       what every app's screen is made of
 src/apps/     the apps
 src/tests/    every claim in the README, as code

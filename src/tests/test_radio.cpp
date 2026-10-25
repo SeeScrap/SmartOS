@@ -8,7 +8,7 @@
 #include "esp_heap_caps.h"
 
 #include "os/radio.h"
-#include "s3hal/log.h"
+#include "board/log.h"
 #include "tests/harness.h"
 
 // ---------------------------------------------------------------------------
