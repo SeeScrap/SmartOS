@@ -20,6 +20,7 @@ idf_component_register(
         "boot_gfx.cpp"
         "system.cpp"
         "tests/harness.cpp"
+        "tests/test_loader.cpp"
         "tests/test_kernel.cpp"
         "tests/test_kernel_stress.cpp"
         "tests/test_park.cpp"

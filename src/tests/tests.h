@@ -78,3 +78,9 @@ void park_flash_test(void);       // 40 erase/write/verify rounds
 void kernel_park_work_start(void);
 void park_psram_alloc(void);      // core 0, before core 1 starts
 #endif
+
+// Stage 7a (tests/test_loader.cpp): can this board run code it was not built
+// with? The decision this whole stage rests on.
+#ifdef SMARTOS_TEST_LOADER
+void loader_probe_test(void);
+#endif
