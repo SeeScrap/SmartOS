@@ -4,6 +4,7 @@
 
 #include "smartos_config.h"
 
+#include "arch/xtensa/karch_irq.h"
 #include "kernel/kspin.h"
 
 // ---------------------------------------------------------------------------
@@ -239,16 +240,15 @@ void     ktop(void);                             // dump the task table
 // the cycle.
 static inline K_IRAM uint32_t k_lock(void)
 {
-    uint32_t ps;
-    __asm__ __volatile__("rsil %0, 3" : "=a"(ps) :: "memory");
-    k_spin_lock_hard(&k_sched_lock);
+    const uint32_t ps = karch_irq_disable();   // this core's tasks and its own
+    k_spin_lock_hard(&k_sched_lock);           // interrupts out, then the other core
     return ps;
 }
 
 static inline K_IRAM void k_unlock(uint32_t ps)
 {
     k_spin_unlock(&k_sched_lock);
-    __asm__ __volatile__("wsr %0, ps; rsync" :: "a"(ps) : "memory");
+    karch_irq_restore(ps);
 }
 
 // --- what the settings in smartos_config.h may not be ----------------------

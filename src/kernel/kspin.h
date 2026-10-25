@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "arch/xtensa/karch_atomic.h"
 #include "port/kport.h"
 
 #include "smartos_config.h"
@@ -16,55 +17,24 @@
 // at the same USB-serial-JTAG FIFO. The ROM routine is not written for two
 // cores at once.
 //
-// S32C1I stores a value only if the memory still equals SCOMPARE1, and hands
-// back what was actually there - so a lock is taken when the value we displaced
-// was zero.
+// The compare-and-swap itself is arch/xtensa/karch_atomic.h; what is here is
+// everything above it - which lock, how long to wait, and what to do when the
+// wait is clearly hopeless.
 //
 // Every acquire is bounded. A core that dies holding the lock must not take the
 // other one down with it - especially here, where the whole point of the other
 // core is to be able to report that the first one crashed.
 // ---------------------------------------------------------------------------
 
-typedef volatile uint32_t k_spin_t;
-
 // K_SPIN_TIMEOUT - how long k_spin_lock waits before giving up - is set in
 // smartos_config.h, section 4, with the reason it is as generous as it is.
 
-static inline K_IRAM bool k_spin_try(k_spin_t *lock)
+// The three the architecture provides, under the kernel's own names.
+static inline K_IRAM bool k_spin_try(k_spin_t *lock) { return karch_spin_try(lock); }
+static inline K_IRAM void k_spin_unlock(k_spin_t *lock) { karch_spin_unlock(lock); }
+static inline K_IRAM bool k_cas(volatile uint32_t *p, uint32_t expect, uint32_t desired)
 {
-    uint32_t val     = 1;
-    uint32_t compare = 0;
-    __asm__ __volatile__(
-        "wsr %2, scompare1 \n"
-        "s32c1i %0, %1, 0  \n"
-        : "+a"(val)
-        : "a"(lock), "a"(compare)
-        : "memory");
-    return val == 0;              // we displaced a zero, so it is ours
-}
-
-// Returns false if the lock could not be taken in time. The caller should carry
-// on anyway rather than hang - a garbled line beats a dead system.
-// Atomically: if *p == expect, store desired. True if the store happened.
-//
-// The general form of k_spin_try, for state machines that hand a word between
-// owners - the mailbox slots, first. S32C1I only works on internal SRAM, so
-// *p must be DRAM, never PSRAM. The barrier on each side makes the swap a
-// full fence: nothing written before it can be seen after the new state, and
-// nothing read after it can come from before.
-static inline K_IRAM bool k_cas(volatile uint32_t *p, uint32_t expect,
-                                   uint32_t desired)
-{
-    uint32_t val = desired;
-    __asm__ __volatile__(
-        "memw               \n"
-        "wsr %2, scompare1  \n"
-        "s32c1i %0, %1, 0   \n"
-        "memw               \n"
-        : "+a"(val)
-        : "a"(p), "a"(expect)
-        : "memory");
-    return val == expect;         // S32C1I hands back what it found
+    return karch_cas(p, expect, desired);
 }
 
 static inline K_IRAM bool k_spin_lock(k_spin_t *lock)
@@ -73,13 +43,6 @@ static inline K_IRAM bool k_spin_lock(k_spin_t *lock)
         if (k_spin_try(lock)) return true;
     }
     return false;
-}
-
-static inline K_IRAM void k_spin_unlock(k_spin_t *lock)
-{
-    __asm__ __volatile__("memw" ::: "memory");
-    *lock = 0;
-    __asm__ __volatile__("memw" ::: "memory");
 }
 
 // Unbounded acquire, for locks that must not be given up on.
