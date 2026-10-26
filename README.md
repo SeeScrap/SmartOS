@@ -3656,10 +3656,30 @@ whole chip". The measured answer is in
 and it is not the answer the question expects: **FreeRTOS is 2.1% of the
 flash. The Wi-Fi stack is about 65%.** So the work was to stop paying for
 what the board does not use, one measured change at a time. The table in that
-chapter has it change by change; across the whole of this effort the firmware
-went from 1,116,885 bytes of flash and 64,656 of internal RAM to 1,040,225 and
-56,812 - **76,660 and 7,844 given back** - while the self-test went from 48
-cases to 75.
+chapter has it change by change: **76,660 bytes of flash and 7,844 of internal
+RAM given back**, while the self-test went from 48 cases to 75.
+
+> **The absolute sizes in that table are 9,920 bytes low, and finding out why
+> is worth more than the table.** They were taken on a board whose generated
+> `sdkconfig` still had `CONFIG_ESP_SYSTEM_MEMPROT` switched off - a leftover
+> from the S7a experiment, which turned it off to find out whether loaded
+> machine code could run at all. `sdkconfig.<env>` is generated and
+> gitignored, and ESP-IDF does not re-apply `sdkconfig.defaults` to one that
+> already exists, so the setting stayed off locally for weeks while every
+> measurement after it was taken on that board.
+>
+> **The repository never had it off**, and a fresh clone has always built with
+> protection on. Delete the generated file and build again and this firmware
+> is **1,050,153** bytes, not 1,040,225. The per-change figures hold, because
+> each was measured back-to-back on the same board in the same state and the
+> features they remove have nothing to do with memory protection - but the
+> totals were a board's, not the repository's.
+>
+> Found by doing what the top of this file tells a newcomer to do: clone it
+> fresh and build it. That is also the answer to whether this page's first
+> command works - on a clean machine it took 3 minutes 41 seconds and produced
+> a firmware that passes all 75 checks, with the memory protection on that
+> stage 7 refused to trade away.
 
 The one worth repeating: **three test buffers were sitting in `.bss` for the
 whole life of the board** - 6,016 bytes of the scarcest memory on the chip,
