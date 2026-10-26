@@ -88,3 +88,9 @@ CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
 # and joining one is on the list. The crypto SAE needs is small next to the
 # enterprise stack - it is the certificates that are expensive, not the
 # handshake.
+
+# lwIP carries IPv6 by default. Nothing in this system speaks IP at all yet -
+# the TCP/IP stack is linked only because esp_wifi needs it to build - and
+# when something does, it will be DHCP on a home network. Turn it back on the
+# day this board needs an IPv6 address; it is one line.
+CONFIG_LWIP_IPV6=n
