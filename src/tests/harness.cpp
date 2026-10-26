@@ -53,6 +53,17 @@ int wait_gone(int id, uint32_t max_ms)
     return (int)((esp_timer_get_time() - t0) / 1000);
 }
 
+int wait_for(bool (*cond)(void *), void *ctx, uint32_t max_ms)
+{
+    const int64_t t0 = esp_timer_get_time();
+    while (!cond(ctx)) {
+        if (esp_timer_get_time() - t0 > (int64_t)max_ms * 1000) return -1;
+        system_pass();
+        kport_yield_ms(1);
+    }
+    return (int)((esp_timer_get_time() - t0) / 1000);
+}
+
 int count_colour(const fb_t *fb, uint16_t colour)
 {
     int n = 0;

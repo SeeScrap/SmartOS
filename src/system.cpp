@@ -174,10 +174,18 @@ void system_loop(void)
     }
 
     {
-        char d[80];
-        snprintf(d, sizeof(d), "%d apps running, %d registered, focus %s",
+        // Home takes the screen from its own task on core 1, so when it gets
+        // there depends on what core 1 has been allowed to do. This used to
+        // read the focus straight away and was right every time - until the
+        // park stress build, where core 1 is held parked while core 0 erases
+        // flash and Home simply had not run yet. The rule being checked is
+        // "nothing runs until the user opens it", not "Home is quick".
+        const int ms = wait_for([](void *) { return app_focused() == app_home_id(); },
+                                nullptr, 3000);
+        char d[96];
+        snprintf(d, sizeof(d), "%d apps running, %d registered, focus %s after %d ms",
                  app_user_count(), app_registry_count() - 1,
-                 app_focused() == app_home_id() ? "Home" : "NOT Home");
+                 app_focused() == app_home_id() ? "Home" : "NOT Home", ms);
         logln();
         logln("--- stage 4.3d: nothing runs until the user opens it ---");
         app_case("boot starts no app", app_user_count() == 0 &&

@@ -94,14 +94,22 @@ void appload_test(void)
     if (loaded) {
         const int id = app_start(app_find(TEST_APP));
         if (id >= 0) app_focus(id);
-        pump(300);
-        tap(0);                                  // UP, the way a finger sends it
-        pump(300);
         const app_ctx_t *c = (id >= 0) ? app_get(id) : nullptr;
-        snprintf(d, sizeof(d), "id %d, %lu frame(s), %lu event(s)", id,
-                 c ? (unsigned long)c->frames : 0ul, c ? (unsigned long)c->events : 0ul);
+
+        // Wait for each thing rather than for a number of milliseconds. The
+        // first version pumped 300 ms and judged; in the park build core 1 is
+        // parked for much of that and it saw no frames at all, which said
+        // nothing about the loader.
+        const int t_draw = c ? wait_for([](void *p) {
+            return ((const app_ctx_t *)p)->frames > 0; }, (void *)c, 3000) : -1;
+        tap(0);                                  // UP, the way a finger sends it
+        const int t_ev = c ? wait_for([](void *p) {
+            return ((const app_ctx_t *)p)->events > 0; }, (void *)c, 3000) : -1;
+
+        snprintf(d, sizeof(d), "id %d, drew after %d ms, heard the button after %d ms",
+                 id, t_draw, t_ev);
         sdk_case("it opens, draws and hears a button",
-                 id >= 0 && c && c->frames > 0 && c->events > 0, d);
+                 id >= 0 && c && t_draw >= 0 && t_ev >= 0, d);
 
         if (id >= 0) {
             app_stop(id);

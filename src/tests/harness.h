@@ -49,6 +49,18 @@ void tap(uint32_t button);
 // was.
 int  wait_gone(int id, uint32_t max_ms);
 
+// Pumps until `cond` is true, or `max_ms` has passed. Milliseconds it took, or
+// -1 if it never became true.
+//
+// A test that pumps for a fixed 300 ms and then judges what it sees is judging
+// the machine's mood. Core 1 draws the apps, and core 0 parks core 1 for every
+// flash operation - tens of milliseconds at a time, and 2 seconds in total
+// under -D SMARTOS_TEST_PARK. Two tests failed in that build for exactly this
+// reason and nothing was wrong with either of the things they were testing.
+// Wait for the thing; report how long it took; keep a ceiling so a real
+// failure still ends.
+int  wait_for(bool (*cond)(void *ctx), void *ctx, uint32_t max_ms);
+
 // Pixels of exactly this colour in fb - how a test sees what is on the panel.
 int  count_colour(const fb_t *fb, uint16_t colour);
 

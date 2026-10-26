@@ -5,14 +5,6 @@
 // underneath it: the Arduino core is gone, so sdkconfig is ours. FreeRTOS is
 // pinned to core 0 (CONFIG_FREERTOS_UNICORE) and core 1 is never started,
 // which is what stage 2.1 will claim for the kernel.
-// ---------------------------------------------------------------------------
-// Builds that replace the kernel's default task set with a test of their own.
-// Apps are not started in these: several of the tests need core 1 to
-// themselves, and none of them create the app manager.
-#if defined(SMARTOS_PREEMPT_SOAK) || defined(SMARTOS_TEST_SLEEP_CLAIM) ||     defined(SMARTOS_TEST_MBOX_STRESS) || defined(SMARTOS_TEST_EVBUS) ||     defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
-#define SMARTOS_KERNEL_TEST_BUILD 1
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>

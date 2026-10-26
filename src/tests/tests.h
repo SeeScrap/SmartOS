@@ -9,6 +9,28 @@
 #define SMARTOS_TEST_APPS 1
 #endif
 
+// Builds that replace the kernel's default task set with a test of their own.
+// Apps are not started in these: several of the tests need core 1 to
+// themselves, and none of them create the app manager.
+//
+// This lived in main.cpp until A1b, and so did the bug. A #define in a .cpp
+// is invisible to every other .cpp, and the two #ifndef that act on it are in
+// system.cpp - which therefore ran the whole app section in builds that have
+// no app manager. Home could never take focus, stage 7's loader test could
+// never see a frame, and both reported a fault in the thing they were
+// testing. Found by running -D SMARTOS_TEST_PARK, which had not been run
+// since before stage 7 existed.
+//
+// It is the second time this exact mistake has been made here - the
+// SMARTOS_TEST_APPHOG implication above was moved out of main.cpp for the
+// same reason, and the comment on it says so. A derived build-mode flag
+// belongs in a header both sides include, and this is that header.
+#if defined(SMARTOS_PREEMPT_SOAK) || defined(SMARTOS_TEST_SLEEP_CLAIM) || \
+    defined(SMARTOS_TEST_MBOX_STRESS) || defined(SMARTOS_TEST_EVBUS) || \
+    defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)
+#define SMARTOS_KERNEL_TEST_BUILD 1
+#endif
+
 
 // ---------------------------------------------------------------------------
 // Stage 5.4b - the test suites, one file each in src/tests/.
