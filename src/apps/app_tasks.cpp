@@ -372,8 +372,21 @@ typedef struct {
     uint16_t    colour;
 } seg_t;
 
+// How many bands the widest page has. RAM is the widest: five, since A1e
+// added the firmware's own share. It was four until then, and nothing would
+// have stopped a sixth from being written past the end of the caller's array
+// - which lives on the stack of this app's task, on core 1.
+#define COMPOSITION_MAX 5
+
+// Adds one band, and will not write past the end. The count still comes back
+// true, so a band that did not fit shows up as a bar that does not add up
+// rather than as memory corruption somebody has to trace.
+#define SEG(label_, bytes_, colour_)                                  \
+    do { if (n < COMPOSITION_MAX) seg[n] = { (label_), (bytes_), (colour_) }; \
+         ++n; } while (0)
+
 // What one memory is made of, as Windows draws "memory composition": a bar
-// split in proportion, and a key under it. Four parts at most.
+// split in proportion, and a key under it. COMPOSITION_MAX parts at most.
 static int composition(const state_t *s, int r, seg_t *seg, uint32_t *total)
 {
     const uint16_t free_c = fb_rgb(44, 48, 58), spare_c = fb_rgb(84, 60, 104);
@@ -384,10 +397,10 @@ static int composition(const state_t *s, int r, seg_t *seg, uint32_t *total)
         const uint32_t stk   = s->stack_bytes;
         const uint32_t other = used > apps + stk ? used - apps - stk : 0;
         *total = (uint32_t)s->kin.total;
-        seg[n++] = { "task stacks", stk,   fb_rgb(160, 60, 200) };
-        seg[n++] = { "apps' state", apps,  fb_rgb(230, 130, 210) };
-        seg[n++] = { "kernel",      other, fb_rgb(110, 90, 140) };
-        seg[n++] = { "free",        (uint32_t)s->kin.free_bytes, free_c };
+        SEG("task stacks", stk,   fb_rgb(160, 60, 200));
+        SEG("apps' state", apps,  fb_rgb(230, 130, 210));
+        SEG("kernel",      other, fb_rgb(110, 90, 140));
+        SEG("free",        (uint32_t)s->kin.free_bytes, free_c);
     } else if (r == RES_RAM) {
         // The whole die, not the heap. ram_total is only what ESP-IDF's
         // allocator was handed at boot; everything between that and
@@ -395,24 +408,32 @@ static int composition(const state_t *s, int r, seg_t *seg, uint32_t *total)
         // .data, .bss - plus what the ROM and the cache keep. None of it can
         // be freed, and leaving it out made the board look like it had 284 KB.
         const uint32_t t = s->sys.ram_total, f = s->sys.ram_free;
-        const uint32_t pool = KHEAP_INTERNAL_SIZE;
+        // What the pool actually took out of ESP-IDF's heap, not what it
+        // asked for. Since stage 6.3 kheap_reserve is allowed to settle for
+        // less when the radio has taken the internal heap first - down to
+        // KHEAP_INTERNAL_MIN - and the app-test build really does settle for
+        // 68 KB. Subtracting the configured 128 KB there took away memory
+        // that was never taken, so "ESP-IDF, core 0" read about 60 KB short
+        // and the five bands stopped adding up to the bar. Same expression
+        // the boot banner uses: payload plus one 16-byte header per block.
+        const uint32_t pool = (uint32_t)(s->kin.total + s->kin.blocks * 16);
         const uint32_t sys = t > f + pool ? t - f - pool : 0;
         const uint32_t fw  = CHIP_SRAM_BYTES > t ? CHIP_SRAM_BYTES - t : 0;
         *total = CHIP_SRAM_BYTES;
-        seg[n++] = { "firmware, fixed",    fw,                          fb_rgb(96, 58, 88) };
-        seg[n++] = { "kernel pool, used",  (uint32_t)s->kin.used,       fb_rgb(210, 90, 170) };
-        seg[n++] = { "kernel pool, spare", (uint32_t)s->kin.free_bytes, spare_c };
-        seg[n++] = { "ESP-IDF, core 0",    sys,                         fb_rgb(120, 70, 110) };
-        seg[n++] = { "free",          f,                           free_c };
+        SEG("firmware, fixed",    fw,                          fb_rgb(96, 58, 88));
+        SEG("kernel pool, used",  (uint32_t)s->kin.used,       fb_rgb(210, 90, 170));
+        SEG("kernel pool, spare", (uint32_t)s->kin.free_bytes, spare_c);
+        SEG("ESP-IDF, core 0",    sys,                         fb_rgb(120, 70, 110));
+        SEG("free",               f,                           free_c);
     } else {
         const uint32_t t = s->sys.psram_total, f = s->sys.psram_free;
-        const uint32_t pool = KHEAP_PSRAM_SIZE;
+        const uint32_t pool = (uint32_t)(s->kps.total + s->kps.blocks * 16);
         const uint32_t sys = t > f + pool ? t - f - pool : 0;
         *total = t;
-        seg[n++] = { "apps (app_alloc)",   (uint32_t)s->kps.used,       fb_rgb(120, 110, 230) };
-        seg[n++] = { "kernel pool, spare", (uint32_t)s->kps.free_bytes, spare_c };
-        seg[n++] = { "screen, ESP-IDF",    sys,                         fb_rgb(70, 70, 130) };
-        seg[n++] = { "free",          f,                           free_c };
+        SEG("apps (app_alloc)",   (uint32_t)s->kps.used,       fb_rgb(120, 110, 230));
+        SEG("kernel pool, spare", (uint32_t)s->kps.free_bytes, spare_c);
+        SEG("screen, ESP-IDF",    sys,                         fb_rgb(70, 70, 130));
+        SEG("free",               f,                           free_c);
     }
     return n;
 }
@@ -484,7 +505,7 @@ static void draw_perf(app_ctx_t *c, fb_t *fb, bool full)
     const int sy = gy + gh + 14, cx2 = gx + 108;
 
     if (memory) {
-        seg_t seg[5];           // RAM has five since the firmware's own is shown
+        seg_t seg[COMPOSITION_MAX];
         uint32_t total = 0;
         const int n = composition(s, s->res.sel, seg, &total);
         draw_composition(fb, gx, sy, gw, seg, n, total);

@@ -224,7 +224,7 @@ void input_logic_test(void)
 
     // The subscription is gone, so nothing can write into the queue any more.
     // Freeing it before unsubscribing would leave the bus holding a pointer
-    // into the pool, which is the kind of bug that waits months to be seen.
+    // into the heap, which is the kind of bug that waits months to be seen.
     heap_caps_free(s_test_q); s_test_q = nullptr;
     heap_caps_free(ev);
 }

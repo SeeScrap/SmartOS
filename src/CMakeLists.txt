@@ -74,6 +74,7 @@ idf_component_register(
         esp_hw_support  # os/sysinfo.cpp reads the chip id
         esp_partition   # the park test scribbles on the storage partition
         esp_psram
+        esp_rom         # lcd_panel.cpp routes the LEDC signal to the backlight pin
         esp_wifi        # stage 6.3: the radio
         esp_netif
         esp_event

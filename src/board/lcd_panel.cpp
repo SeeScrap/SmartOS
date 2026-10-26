@@ -10,6 +10,8 @@
 #include "board/lcd_bus.h"
 #include "board/log.h"
 
+#include "freertos/FreeRTOS.h"
+
 #include "esp_rom_gpio.h"
 #include "soc/gpio_sig_map.h"
 #include "soc/ledc_struct.h"
@@ -304,9 +306,25 @@ static uint32_t s_bl_duty;
 static void bl_start(void)
 {
     // The peripheral: clock on, then out of reset.
+    //
+    // UNDER A LOCK, and not because of this driver. Those two registers hold
+    // one bit per peripheral for the whole chip, so setting ours is a read, a
+    // change and a write back - and anything that writes them in between
+    // loses its bit and its clock, silently. ESP-IDF will not let its own
+    // code near them without a critical section either; its ledc_ll wraps
+    // them in a macro that does not compile outside one.
+    //
+    // Today the first call is main.cpp's lcd_backlight_pct(0), before
+    // dev_init() starts the timer and the ADC and before wake_core1(), so
+    // nothing else is running that would touch these. That is a fact about
+    // where one line sits, not a property of this code, and it would stop
+    // being true the moment somebody moved it.
+    static portMUX_TYPE rcc = portMUX_INITIALIZER_UNLOCKED;
+    portENTER_CRITICAL(&rcc);
     REG_SET_BIT(SYSTEM_PERIP_CLK_EN0_REG, SYSTEM_LEDC_CLK_EN);
     REG_SET_BIT(SYSTEM_PERIP_RST_EN0_REG, SYSTEM_LEDC_RST);
     REG_CLR_BIT(SYSTEM_PERIP_RST_EN0_REG, SYSTEM_LEDC_RST);
+    portEXIT_CRITICAL(&rcc);
 
     LEDC.conf.apb_clk_sel = 1;          // 1 = APB, 80 MHz
 
