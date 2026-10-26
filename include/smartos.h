@@ -34,7 +34,25 @@
 // Tasks: create, yield, sleep, end, and ask how they are doing.
 #include "kernel/ktask.h"
 
-// Mutexes, semaphores and queues, all of them with timeouts.
+// Mutexes, semaphores and queues. Each has a blocking call and a try-once
+// call - k_mutex_lock / k_mutex_try_lock, and the same shape for the other
+// two.
+//
+// WHAT IS NOT HERE YET, said plainly because this header is a promise and a
+// promise that overstates is worse than none. Until R8-A1e this line claimed
+// "all of them with timeouts", and none of them has one.
+//
+//   no timeouts            a blocking call waits for ever, or you use the
+//                          try-once form and decide for yourself
+//   no recursive mutex     locking one twice from the same task is reported,
+//                          not allowed
+//   no priority inheritance  a low-priority task holding a mutex that a
+//                          high-priority task wants is not lifted. Priority
+//                          inversion can happen here and nothing detects it
+//   no task notifications
+//
+// They are listed because they are what a port of ESP-IDF's drivers onto this
+// kernel would need first, not because they are planned.
 #include "kernel/ksync.h"
 
 // The clock, sleeping, and the preemption controls.

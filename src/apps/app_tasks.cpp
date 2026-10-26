@@ -122,13 +122,16 @@ static void sample(app_ctx_t *c)
         s->switches_per_s  = sw - s->switches_prev;
         s->flash_ops_per_s = s->sys.flash_ops - s->flash_ops_prev;
         // "In use" for RAM and PSRAM leaves out the kernel pools' spare room:
-        // taken from ESP-IDF, but not holding anything yet.
-        const uint32_t ram_use = s->sys.ram_total - s->sys.ram_free - (uint32_t)s->kin.free_bytes;
+        // taken from ESP-IDF, but not holding anything yet. RAM is measured
+        // against the whole die, so this figure and the composition bar below
+        // it are the same question answered the same way - before A1e the bar
+        // said 284 KB and this said a percentage of it.
+        const uint32_t ram_use = CHIP_SRAM_BYTES - s->sys.ram_free - (uint32_t)s->kin.free_bytes;
         const uint32_t ps_use  = s->sys.psram_total - s->sys.psram_free - (uint32_t)s->kps.free_bytes;
         const uint16_t v[RESOURCES] = {
             s->busy_pm,
             per_mille(s->kin.used, s->kin.total),
-            per_mille(ram_use, s->sys.ram_total),
+            per_mille(ram_use, CHIP_SRAM_BYTES),
             per_mille(ps_use, s->sys.psram_total),
             s->park_pm,
         };
@@ -312,7 +315,7 @@ static res_look_t look(int r)
     switch (r) {
         case RES_CPU:    return { "CPU",    "core 1",           fb_rgb(17, 125, 187), fb_rgb(10, 42, 66) };
         case RES_KERNEL: return { "Kernel", "kernel pool, 128 KB", fb_rgb(160, 60, 200), fb_rgb(48, 20, 62) };
-        case RES_RAM:    return { "RAM",    "internal RAM",     fb_rgb(210, 90, 170), fb_rgb(62, 26, 50) };
+        case RES_RAM:    return { "RAM",    "internal, 512 KB", fb_rgb(210, 90, 170), fb_rgb(62, 26, 50) };
         case RES_PSRAM:  return { "PSRAM",  "8 MB, external",   fb_rgb(120, 110, 230), fb_rgb(34, 30, 70) };
         default:         return { "Flash",  "flash busy",       fb_rgb(90, 180, 30), fb_rgb(24, 58, 10) };
     }
@@ -386,10 +389,17 @@ static int composition(const state_t *s, int r, seg_t *seg, uint32_t *total)
         seg[n++] = { "kernel",      other, fb_rgb(110, 90, 140) };
         seg[n++] = { "free",        (uint32_t)s->kin.free_bytes, free_c };
     } else if (r == RES_RAM) {
+        // The whole die, not the heap. ram_total is only what ESP-IDF's
+        // allocator was handed at boot; everything between that and
+        // CHIP_SRAM_BYTES is the firmware placed at link time - IRAM code,
+        // .data, .bss - plus what the ROM and the cache keep. None of it can
+        // be freed, and leaving it out made the board look like it had 284 KB.
         const uint32_t t = s->sys.ram_total, f = s->sys.ram_free;
         const uint32_t pool = KHEAP_INTERNAL_SIZE;
         const uint32_t sys = t > f + pool ? t - f - pool : 0;
-        *total = t;
+        const uint32_t fw  = CHIP_SRAM_BYTES > t ? CHIP_SRAM_BYTES - t : 0;
+        *total = CHIP_SRAM_BYTES;
+        seg[n++] = { "firmware, fixed",    fw,                          fb_rgb(96, 58, 88) };
         seg[n++] = { "kernel pool, used",  (uint32_t)s->kin.used,       fb_rgb(210, 90, 170) };
         seg[n++] = { "kernel pool, spare", (uint32_t)s->kin.free_bytes, spare_c };
         seg[n++] = { "ESP-IDF, core 0",    sys,                         fb_rgb(120, 70, 110) };
@@ -474,7 +484,7 @@ static void draw_perf(app_ctx_t *c, fb_t *fb, bool full)
     const int sy = gy + gh + 14, cx2 = gx + 108;
 
     if (memory) {
-        seg_t seg[4];
+        seg_t seg[5];           // RAM has five since the firmware's own is shown
         uint32_t total = 0;
         const int n = composition(s, s->res.sel, seg, &total);
         draw_composition(fb, gx, sy, gw, seg, n, total);

@@ -416,6 +416,19 @@
 #define K_TICK_HZ  1000
 #endif
 
+// Internal SRAM on the die, in bytes. A fact about the ESP32-S3, not a dial.
+//
+// It is here because ESP-IDF will not tell you: heap_caps_get_total_size()
+// reports the part of it the allocator was given, which on this build is
+// about 284 KB. The rest is the firmware itself - the code that has to live
+// in IRAM, every initialised variable, every zeroed one - placed at link time
+// and never returned. The task manager's RAM page used to show only the heap
+// and call it the total, which made 512 KB of chip look like 284, and made
+// the firmware's own 230 KB invisible. It shows all of it now.
+#ifndef CHIP_SRAM_BYTES
+#define CHIP_SRAM_BYTES  (512 * 1024)
+#endif
+
 
 // ===========================================================================
 // 14. THE SCREEN / หน้าจอ
