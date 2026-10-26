@@ -65,3 +65,26 @@ CONFIG_ESP_WIFI_RX_BA_WIN=4
 # ADC read then live in IRAM, and the ADC unit's state in internal RAM.
 CONFIG_GPTIMER_ISR_CACHE_SAFE=y
 CONFIG_ADC_ONESHOT_CTRL_FUNC_IN_IRAM=y
+
+# --- the radio, trimmed (A1b) ----------------------------------------------
+# Measured first: of the dozen optional Wi-Fi features, ten were already off
+# in this build (11k/v, 11r, MBO, DPP, NAN, FTM, WPS-strict, Suite-B, GCMP,
+# WAPI). Only these two were on, and they are the two this board cannot use.
+#
+# SoftAP: this board is a station. It scans, and stage 6.4 may have it join an
+# access point. It has never been one and has no reason to be - no DHCP server,
+# no NAT, no second interface. Turning it off takes the AP half of net80211 and
+# wpa_supplicant out, and with it SOFTAP_SAE and OWE_SOFTAP.
+CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n
+
+# Enterprise (WPA2-Enterprise / 802.1X): EAP-TLS, PEAP, TTLS and the X.509
+# certificate handling under them. That is what pulls tfpsacrypto and mbedTLS
+# into the image - 190 KB of flash measured, for a board that joins a home
+# network with a password or nothing at all.
+CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
+
+# NOT turned off, deliberately: CONFIG_ESP_WIFI_ENABLE_WPA3_SAE and the SAE
+# options under it. WPA3 is what a router bought today is likely to be set to,
+# and joining one is on the list. The crypto SAE needs is small next to the
+# enterprise stack - it is the certificates that are expensive, not the
+# handshake.
