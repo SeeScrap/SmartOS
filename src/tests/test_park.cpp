@@ -18,6 +18,8 @@
 #include "esp_partition.h"
 #include "esp_timer.h"
 
+#include "kernel/kheap.h"
+
 #include "kernel/klog.h"
 #include "port/kpark.h"
 #include "kernel/ktask.h"
@@ -84,7 +86,15 @@ void park_smoke_test(void)
     const esp_partition_t *p = storage_partition();
     if (!p) { logln("  !! no 'scratch' partition"); return; }
 
-    static uint8_t buf[4096];               // internal RAM: PSRAM is off too
+    // 4 KB, and it was a static until R8-A1a: it sat in .bss for the whole
+    // life of the board although this test runs once, at boot. It has to come
+    // from the INTERNAL pool and nowhere else - the read below happens with
+    // the flash cache off, which takes PSRAM out of reach with it.
+    uint8_t *buf = (uint8_t *)kmalloc(4096);
+    if (!buf) {
+        sdk_case("flash reads, parked", false, "no 4 KB in the kernel pool");
+        return;
+    }
     const uint32_t k0 = k_millis();
     const int64_t  e0 = esp_timer_get_time();
     int ok = 0, refused = 0, errs = 0;
@@ -103,6 +113,7 @@ void park_smoke_test(void)
     snprintf(d, sizeof(d), "%d read, %d failed, %d refused", ok, errs, refused);
     sdk_case("flash reads, parked", ok == 100 && errs == 0, d);
     park_report(kms, ems);
+    kfree(buf);
 }
 
 #if defined(SMARTOS_TEST_PARK) || defined(SMARTOS_TEST_PARK_OFF)

@@ -10,6 +10,8 @@
 #include "system.h"
 #include "tests/harness.h"
 
+#include "esp_heap_caps.h"
+
 // ---------------------------------------------------------------------------
 // Stage 3.6 - buttons as an event stream (moved out of main.cpp in 5.4b).
 //
@@ -25,8 +27,27 @@
 // The debouncer publishes on the bus now, so the script reads it the way any
 // app would: as a subscriber. A fresh one per case, so every case starts with
 // an empty queue, seq 0 and no drops.
-static ev_t s_test_q[TEST_Q_LEN];
-static int  s_test_sub = -1;
+// Both of these used to be statics, and both are scratch this test needs for
+// the second it runs. Together they were 1,920 bytes of internal RAM held for
+// the whole life of the board - the scarcest memory on this chip, spent on a
+// test that finishes before the launcher is even on screen. They are borrowed
+// and given back now.
+//
+// NOT kmalloc, although every other test in this directory uses it. This file
+// is the debouncer fed a script: pure logic, no hardware, nothing of the
+// kernel in it - so main.cpp runs it BEFORE wake_core1(), which means before
+// kheap_reserve() has taken the kernel's pools from ESP-IDF. kmalloc() here
+// returns null, every case is skipped, and the event bus tests that follow
+// then fail in a way that points at the bus rather than at this. Measured,
+// on the board, by making exactly that mistake.
+//
+// So: core 0's own allocator, which is up from the first line of app_main.
+// tests/test_park.cpp does use kmalloc, and is right to - it runs after the
+// kernel, and its buffer has to survive the flash cache being switched off.
+static ev_t *s_test_q  = nullptr;
+static int   s_test_sub = -1;
+
+#define TEST_CAPS (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
 
 
 static void reset_case(void)
@@ -82,7 +103,15 @@ void input_logic_test(void)
     logln();
     logln("--- stage 3.6a: the debouncer, fed a script ---");
 
-    static ev_t ev[EV_MAX];
+    ev_t  *ev = (ev_t *)heap_caps_malloc(sizeof(ev_t) * EV_MAX, TEST_CAPS);
+    s_test_q  = (ev_t *)heap_caps_malloc(sizeof(ev_t) * TEST_Q_LEN, TEST_CAPS);
+    if (!ev || !s_test_q) {
+        input_case("the debouncer has room to be tested", false,
+                   "internal RAM could not spare 1,920 bytes of scratch");
+        heap_caps_free(ev); heap_caps_free(s_test_q); s_test_q = nullptr;
+        return;
+    }
+
     char   d[64];
     uint32_t t;
     int n;
@@ -192,4 +221,10 @@ void input_logic_test(void)
     input_reset();
     evbus_unsubscribe(s_test_sub);
     s_test_sub = -1;
+
+    // The subscription is gone, so nothing can write into the queue any more.
+    // Freeing it before unsubscribing would leave the bus holding a pointer
+    // into the pool, which is the kind of bug that waits months to be seen.
+    heap_caps_free(s_test_q); s_test_q = nullptr;
+    heap_caps_free(ev);
 }
