@@ -538,12 +538,19 @@ extern "C" void app_main(void)
 
         // The brightness setting, loaded from flash, is what the PWM is doing.
         const int32_t bl = settings_get("backlight");
+        // Both of these come out of the LEDC registers, not out of a variable
+        // this file wrote earlier: duty is the channel's duty_read, and the
+        // frequency is computed back from the timer's own divider and
+        // resolution. Since A1d drives the peripheral directly, a test that
+        // only checked our own bookkeeping would pass with the screen dark.
         const uint32_t duty = lcd_backlight_duty();
-        snprintf(d, sizeof(d), "backlight %ld %%, PWM duty %lu of %lu (want %lu)", (long)bl,
-                 (unsigned long)duty, (unsigned long)LCD_BACKLIGHT_MAX_DUTY,
-                 (unsigned long)(bl * LCD_BACKLIGHT_MAX_DUTY / 100));
+        const uint32_t hz   = lcd_backlight_hz();
+        snprintf(d, sizeof(d), "backlight %ld %%, duty %lu of %lu (want %lu), %lu Hz",
+                 (long)bl, (unsigned long)duty, (unsigned long)LCD_BACKLIGHT_MAX_DUTY,
+                 (unsigned long)(bl * LCD_BACKLIGHT_MAX_DUTY / 100), (unsigned long)hz);
         sdk_case("settings applied",
-                 duty == (uint32_t)(bl * LCD_BACKLIGHT_MAX_DUTY / 100), d);
+                 duty == (uint32_t)(bl * LCD_BACKLIGHT_MAX_DUTY / 100) &&
+                 hz == LCD_BACKLIGHT_HZ, d);
 
         logln("  files kept by apps:");
         fs_print_tree();

@@ -455,6 +455,23 @@
 #define LCD_BACKLIGHT_MAX_DUTY  1023u
 #endif
 
+// Its resolution in bits, and the carrier frequency. 5 kHz is well above
+// anything an eye can see flicker in and well below what the module's
+// backlight transistor stops following.
+//
+// These three are tied together by arithmetic the hardware cannot do for
+// itself: with the 80 MHz APB clock as the source, the LEDC timer divides by
+// (divider/256) * 2^bits. board/lcd_panel.cpp computes the divider from these
+// and a static_assert there fails the build if the answer is not a whole
+// number - a fractional divider would put the backlight at a frequency
+// nobody chose.
+#ifndef LCD_BACKLIGHT_BITS
+#define LCD_BACKLIGHT_BITS  10
+#endif
+#ifndef LCD_BACKLIGHT_HZ
+#define LCD_BACKLIGHT_HZ    5000u
+#endif
+
 // Largest single SPI transaction, and therefore the size of each staging
 // buffer in lcd_panel.cpp.
 //

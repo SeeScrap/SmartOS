@@ -29,12 +29,18 @@ uint8_t  lcd_bytes_per_pixel(void);
 
 void     lcd_backlight(bool on);
 
-// Stage 4.5: brightness, 0-100 %, by PWM on the backlight pin (LEDC, 5 kHz -
-// well above flicker, well below what the module's backlight transistor can
-// follow). Core 0 only: it uses the LEDC driver. lcd_backlight() is this at
-// 0 or 100.
+// Stage 4.5: brightness, 0-100 %, by PWM on the backlight pin. One LEDC
+// channel, written to the registers directly since A1d - see the note in
+// lcd_panel.cpp for why, and for where the sequence comes from.
+// LCD_BACKLIGHT_HZ and _BITS in smartos_config.h set the carrier.
+// lcd_backlight() is this at 0 or 100. Core 0 only.
 void     lcd_backlight_pct(uint8_t pct);
-uint32_t lcd_backlight_duty(void);    // the duty actually set, 0-1023, for tests
+
+// Both read the hardware back rather than repeating what was written, so a
+// test using them is testing the peripheral and not its own bookkeeping.
+uint32_t lcd_backlight_duty(void);    // what the channel drives, 0-1023
+uint32_t lcd_backlight_hz(void);      // the carrier, from the timer registers;
+                                      // 0 if the channel is not driving the pin
 
 void     lcd_set_window(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 void     lcd_fill_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);

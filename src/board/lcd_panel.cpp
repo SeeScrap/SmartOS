@@ -1,6 +1,5 @@
 #include "board/lcd_panel.h"
 
-#include "driver/ledc.h"
 
 #include "board/gpio.h"
 #include "port/kport.h"
@@ -10,6 +9,12 @@
 #include "board/devkitc_n16r8.h"
 #include "board/lcd_bus.h"
 #include "board/log.h"
+
+#include "esp_rom_gpio.h"
+#include "soc/gpio_sig_map.h"
+#include "soc/ledc_struct.h"
+#include "soc/soc.h"
+#include "soc/system_reg.h"
 
 // --- init tables -----------------------------------------------------------
 // Encoding: cmd, count, payload...   count bit 0x80 means "delay 150 ms after".
@@ -255,40 +260,115 @@ uint16_t lcd_width(void)          { return s_w; }
 uint16_t lcd_height(void)         { return s_h; }
 uint8_t  lcd_bytes_per_pixel(void){ return s_bpp; }
 
+// --- the backlight ---------------------------------------------------------
+//
+// One PWM channel, written to the LEDC registers directly. It used to go
+// through ESP-IDF's LEDC driver, which cost 11,304 bytes of the image - most
+// of it DRAM, the scarcest memory on this board - to drive a single pin at a
+// fixed frequency that never changes. The driver carries eight channels, four
+// timers, fading with an interrupt, clock-source negotiation and power
+// management; none of that is wanted here.
+//
+// The register sequence below is not invented. It is the one ESP-IDF's own
+// low-level layer performs, read out of
+// components/esp_hal_ledc/esp32s3/include/hal/ledc_ll.h and followed in the
+// same order, because this is a place where guessing shows up as a dark
+// screen rather than as a compiler error.
+//
+// Low-speed mode, timer 0, channel 0. On the ESP32-S3 the clock source is
+// chosen once, globally, in LEDC.conf.apb_clk_sel - the per-timer tick_sel
+// field that older chips use is not touched by IDF here, so it is not touched
+// here either.
+
+// (divider / 256) * 2^bits must divide the 80 MHz APB clock to the frequency
+// we asked for, and the divider is a 10.8 fixed-point number.
+// 64-bit on purpose: 80,000,000 * 256 is 20.5 billion and does not fit in
+// a uint32_t. The first version of this line wrapped, and the
+// static_assert below is the only reason that was noticed - it fired for
+// an overflow rather than for the frequency it was written to guard.
+#define BL_APB_X256 (80ull * 1000ull * 1000ull * 256ull)
+#define BL_DIV_NUM  ((uint32_t)(BL_APB_X256 / \
+                     ((uint64_t)LCD_BACKLIGHT_HZ << LCD_BACKLIGHT_BITS)))
+static_assert(BL_APB_X256 %
+              ((uint64_t)LCD_BACKLIGHT_HZ << LCD_BACKLIGHT_BITS) == 0,
+              "LCD_BACKLIGHT_HZ and _BITS do not divide the 80 MHz APB clock "
+              "exactly - the backlight would run at a frequency nobody chose");
+static_assert(LCD_BACKLIGHT_MAX_DUTY == (1u << LCD_BACKLIGHT_BITS) - 1u,
+              "LCD_BACKLIGHT_MAX_DUTY must be the largest duty the chosen "
+              "resolution can express");
+static_assert(BL_DIV_NUM < (1u << 18), "the LEDC clock divider is 18 bits");
+
 static bool     s_bl_pwm;
 static uint32_t s_bl_duty;
+
+static void bl_start(void)
+{
+    // The peripheral: clock on, then out of reset.
+    REG_SET_BIT(SYSTEM_PERIP_CLK_EN0_REG, SYSTEM_LEDC_CLK_EN);
+    REG_SET_BIT(SYSTEM_PERIP_RST_EN0_REG, SYSTEM_LEDC_RST);
+    REG_CLR_BIT(SYSTEM_PERIP_RST_EN0_REG, SYSTEM_LEDC_RST);
+
+    LEDC.conf.apb_clk_sel = 1;          // 1 = APB, 80 MHz
+
+    // Timer 0. low_speed_update is how a low-speed timer's new settings are
+    // taken up; without it the registers hold the right numbers and the
+    // hardware keeps using the old ones.
+    LEDC.timer_group[0].timer[0].conf.duty_resolution = LCD_BACKLIGHT_BITS;
+    LEDC.timer_group[0].timer[0].conf.clock_divider   = BL_DIV_NUM;
+    LEDC.timer_group[0].timer[0].conf.pause           = 0;
+    LEDC.timer_group[0].timer[0].conf.rst             = 1;
+    LEDC.timer_group[0].timer[0].conf.rst             = 0;
+    LEDC.timer_group[0].timer[0].conf.low_speed_update = 1;
+
+    // Channel 0 follows timer 0, idle low, and starts its period at 0.
+    LEDC.channel_group[0].channel[0].conf0.timer_sel = 0;
+    LEDC.channel_group[0].channel[0].conf0.idle_lv   = 0;
+    LEDC.channel_group[0].channel[0].hpoint.hpoint   = 0;
+
+    // The pin is already an output: lcd_bus_init drove it as a plain GPIO to
+    // get a picture up before any of this existed. Routing the channel's
+    // signal through the GPIO matrix takes it over.
+    esp_rom_gpio_connect_out_signal(PIN_LCD_BL, LEDC_LS_SIG_OUT0_IDX, false, false);
+    s_bl_pwm = true;
+}
 
 void lcd_backlight_pct(uint8_t pct)
 {
     if (pct > 100) pct = 100;
-    if (!s_bl_pwm) {
-        // Taken over from the plain GPIO that lcd_bus_init set up: once a LEDC
-        // channel is attached, the pin follows the channel.
-        ledc_timer_config_t t = {};
-        t.speed_mode      = LEDC_LOW_SPEED_MODE;
-        t.duty_resolution = LEDC_TIMER_10_BIT;
-        t.timer_num       = LEDC_TIMER_0;
-        t.freq_hz         = 5000;
-        t.clk_cfg         = LEDC_AUTO_CLK;
-        ledc_timer_config(&t);
+    if (!s_bl_pwm) bl_start();
 
-        ledc_channel_config_t ch = {};
-        ch.gpio_num   = PIN_LCD_BL;
-        ch.speed_mode = LEDC_LOW_SPEED_MODE;
-        ch.channel    = LEDC_CHANNEL_0;
-        ch.timer_sel  = LEDC_TIMER_0;
-        ch.duty       = 0;
-        ledc_channel_config(&ch);
-        s_bl_pwm = true;
-    }
     s_bl_duty = (uint32_t)pct * LCD_BACKLIGHT_MAX_DUTY / 100u;
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, s_bl_duty);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+
+    // duty is a 19-bit field holding the value shifted left by four: the low
+    // four bits are the fractional part the fade hardware uses, and we do not
+    // fade. conf1 is cleared so no fade is in progress, duty_start latches the
+    // new value, and low_speed_update hands the whole channel to the hardware.
+    LEDC.channel_group[0].channel[0].duty.duty = s_bl_duty << 4;
+    LEDC.channel_group[0].channel[0].conf1.val = 0;
+    LEDC.channel_group[0].channel[0].conf1.duty_start = 1;
+    LEDC.channel_group[0].channel[0].conf0.sig_out_en = 1;
+    LEDC.channel_group[0].channel[0].conf0.low_speed_update = 1;
 }
 
+// Read back from the hardware, not from s_bl_duty - a test that compares a
+// variable with itself proves nothing. duty_read is what the channel is
+// actually driving, in the same 4-bit-shifted form.
 uint32_t lcd_backlight_duty(void)
 {
-    return s_bl_pwm ? ledc_get_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0) : 0;
+    if (!s_bl_pwm) return 0;
+    return LEDC.channel_group[0].channel[0].duty_rd.duty_read >> 4;
+}
+
+// For the self-test: is the channel really configured and driving the pin,
+// rather than merely holding the numbers we wrote? Frequency in Hz, computed
+// back out of the timer's own registers.
+uint32_t lcd_backlight_hz(void)
+{
+    if (!s_bl_pwm || !LEDC.channel_group[0].channel[0].conf0.sig_out_en) return 0;
+    const uint32_t div  = LEDC.timer_group[0].timer[0].conf.clock_divider;
+    const uint32_t bits = LEDC.timer_group[0].timer[0].conf.duty_resolution;
+    if (!div) return 0;
+    return (uint32_t)(BL_APB_X256 / ((uint64_t)div << bits));
 }
 
 void lcd_backlight(bool on)
