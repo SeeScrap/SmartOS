@@ -2,12 +2,136 @@
 
 *[อ่านฉบับภาษาไทย](README.th.md)*
 
-A custom OS for the ESP32-S3, built from the kernel upwards.
+A custom OS for the ESP32-S3, built from the kernel upwards. It does not sit
+on top of FreeRTOS: it owns a core.
 
-> The stage-by-stage record below was written while this was called Project
-> S3, and it still says so in places. The code was renamed in one go late on
-> (see `R3` in the history); the record was left as it was written, because
-> rewriting it would make it a worse record.
+---
+
+## Install it
+
+One command on a fresh clone. You need [PlatformIO](https://platformio.org/)
+and the board plugged into its **native USB** socket (the one marked USB, not
+UART).
+
+```
+git clone https://github.com/SeeScrap/SmartOS
+cd SmartOS
+pio run -t upload -t monitor
+```
+
+PlatformIO fetches ESP-IDF and, from
+[src/idf_component.yml](src/idf_component.yml), the one third-party component
+this uses - littlefs, pinned by `dependencies.lock` to the version everything
+here was measured against. `managed_components/` is not in the repository
+because that file is what restores it. The first build takes about five
+minutes; after that, seconds.
+
+**Two things that will waste your afternoon if nobody tells you:**
+
+* **No spaces anywhere in the path.** ESP-IDF's build system rejects them
+  outright.
+* **On Windows, build from the command line with
+  `PLATFORMIO_BUILD_DIR=.pio/cli`.** The VS Code extension builds into
+  `.pio/build` by itself whenever `platformio.ini` changes, and two builders
+  sharing one folder is where every "flaky build" in this project came from.
+
+## What you get when it boots
+
+A boot screen with a spinner, then **Home**: a launcher over a wallpaper, with
+the apps that ship with it - a counter, a bouncing box, an ADC scope, snake, a
+notes app with an on-screen keyboard, a settings page, a log reader, and a task
+manager with a performance page.
+
+![Home](docs/screens/home_wallpaper.png)
+
+Six buttons drive everything: UP/DOWN choose, OK opens, **hold BACK** closes an
+app, **DOWN+BACK** minimises it so it keeps running. The buttons on this board
+are not wired yet, so until you solder them, drive it over the cable instead:
+
+```
+s3> key down down ok      the same events the buttons send
+s3> ps                    kernel tasks, then apps, with CPU
+s3> free                  internal RAM, PSRAM, the kernel heap
+s3> screenshot            saves the panel as a PNG, via tools/screenshot.py
+s3> help                  the rest
+```
+
+The board prints its own self-test at every boot, so `-t monitor` is worth
+reading: **75 checks on an ordinary boot**, and 159 with
+`-D SMARTOS_TEST_APPS` in `build_flags`. `python tools/boot_check.py` resets
+the board, counts them and compares the case names against a committed
+baseline, so a test that quietly stops running is noticed rather than missed.
+
+## Write an app and install it, without reflashing
+
+This is the part that makes it an operating system rather than a program.
+An app is a file. It goes onto the board over the same USB cable, appears in
+Home beside the built-in apps, and survives a power cut. **The firmware is not
+rebuilt and not touched** - checked with `esptool verify_flash`, which says
+"verify OK (digest matched)" afterwards.
+
+```
+app tally {
+    order 100
+    var count
+
+    on draw {
+        if (full) { text(8, 6, "Tally", 0x56BF, 2) }
+        text_bg(8, 50, fmt("pressed %d times", count), 0xFFFF, 0, 1)
+    }
+
+    on event {
+        if (ev_type == 0 && ev_a == 1) { count = count + 1  invalidate() }
+    }
+}
+```
+
+```
+python tools/sappc.py examples/apps/tally.sap tally.app    # 246 bytes
+python tools/install_app.py tally.app
+  tally installed; it is in Home now
+```
+
+`tools/install_app.py` also does `--list` and `--remove`. The language, the
+machine it runs on and why it is not native code are in
+[Stage 7](#stage-7---apps-the-user-installs); the short version is that this
+chip would have to have its memory protection switched off for ever to run
+loaded machine code, so an installed app is interpreted instead - and comes
+out safer than a built-in one for it.
+
+## Write a program on the kernel alone
+
+No screen, no apps, no filesystem - just the kernel, as you would use an RTOS.
+
+```c
+#include "smartos.h"            // the whole surface
+
+static k_mutex_t lock;
+
+static void worker(void *arg) {
+    for (int i = 0; i < 1000; ++i) {
+        k_mutex_lock(&lock);
+        counter++;
+        k_mutex_unlock(&lock);
+    }
+    k_exit();
+}
+```
+
+[examples/kernel_blink/](examples/kernel_blink/) is a separate PlatformIO
+project that builds against the kernel component and three ESP-IDF components,
+with no part of the operating system in it at all. **That it links and runs is
+why the layers are arranged the way they are** - 175 KB of flash, 17 KB of RAM,
+and it blinks.
+
+```
+cd examples/kernel_blink
+pio run -t upload
+```
+
+---
+
+## How it is arranged
 
 The kernel does not sit on top of FreeRTOS - it owns core 1 outright. IDF is
 built unicore, so FreeRTOS never starts the second core, and the kernel takes
@@ -26,6 +150,32 @@ handed to it over a mailbox.
         ^                                |
         +------- kmbox job slots --------+
 ```
+
+The host-side tools in [tools/](tools/) talk to the board over the same USB
+connection: `shell_test.py` drives the shell through its whole command set,
+`screenshot.py` saves what is on the panel as a PNG, `wifi_survey.py` measures
+what the radio hears.
+
+> The stage-by-stage record below was written while this was called Project
+> S3, and it still says so in places. The code was renamed in one go late on
+> (see `R3` in the history); the record was left as it was written, because
+> rewriting it would make it a worse record.
+>
+> **The test counts moved twice, in opposite directions.** The record quotes
+> 51 and 134, and later 51 and 135. Those came from counting every line of
+> the boot log that ends in `OK`, and three of those lines are not tests:
+> ESP-IDF's own `SPI SRAM memory test OK`, and the `[consumer]` and `[mbox]`
+> demo tasks reporting their own sums. Nothing regressed; the count was
+> wrong, not the firmware. The real figures were 48 and 132. They are 75 and
+> 159 now because stage 7's suites stopped being optional and a review added
+> one more. The per-stage numbers are left as they were written, because
+> that is what was measured at the time.
+
+**Our HAL is `src/board/`, not `src/hal/`.** IDF ships its own `hal/log.h`,
+and a quoted include from inside a directory called `hal` finds IDF's copy
+instead of ours - learned the hard way, and the note is kept in
+[src/CMakeLists.txt](src/CMakeLists.txt) so nobody tidies the name back.
+
 
 ## Hardware
 
@@ -156,52 +306,6 @@ interrupt, and a one-off heap carve at boot - plus starting the second core.
 It is deliberately inline functions and link-time symbols rather than a table
 of function pointers: the context switch and the spinlocks are measured in
 instructions, so everything on those paths has to resolve at compile time.
-
-## Build
-
-```
-pio run -t upload -t monitor
-```
-
-That is the whole of it on a fresh clone: PlatformIO fetches ESP-IDF and, from
-[src/idf_component.yml](src/idf_component.yml), the one third-party component
-this uses - littlefs, pinned by `dependencies.lock` to the version everything
-here was measured against. `managed_components/` is not in the repository
-because that file is what restores it.
-
-**The board checks itself at every boot** and prints the result over USB, so
-`-t monitor` is not optional reading: 74 cases on an ordinary boot, and with
-`-D SMARTOS_TEST_APPS` in `build_flags`, 158. `python tools/boot_check.py` resets
-the board, counts them for you and compares the case names against a committed
-baseline, so a test that quietly stops running is noticed. The other test
-builds - the kernel under load, a full filesystem, an app that never yields -
-are listed with what each one must print at the bottom of
-[platformio.ini](platformio.ini).
-
-> **The numbers moved twice, in opposite directions.** The stage-by-stage
-> record below quotes 51 and 134, and later 51 and 135. Those came from
-> counting every line of
-> the boot log that ends in `OK`, and three of those lines are not tests:
-> ESP-IDF's own `SPI SRAM memory test OK`, and the `[consumer]` and `[mbox]`
-> demo tasks reporting their own sums. Nothing regressed; the count was
-> wrong, not the firmware. The real figures were 48 and 132. They are 74
-> and 158 now because stage 7's two suites - the bytecode machine and the
-> loader - used to run only behind a build flag, and from S7h they run on
-> every boot like everything else. The per-stage numbers are left as they
-> were written, because that is what was measured at the time.
-
-The host-side tools in [tools/](tools/) talk to the board over the same USB
-connection: `shell_test.py` drives the shell through its whole command set,
-`screenshot.py` saves what is on the panel as a PNG, `wifi_survey.py` measures
-what the radio hears.
-
-Two environment constraints, both learned the hard way:
-
-* **No spaces anywhere in the project path.** ESP-IDF's build system rejects
-  them outright, which is why this folder is `Project_S3`.
-* **Our HAL is `src/board/`, not `src/hal/`.** IDF ships its own
-  `hal/log.h`, and a quoted include from inside a directory called `hal`
-  finds IDF's copy instead of ours. See the note in [src/CMakeLists.txt](src/CMakeLists.txt).
 
 ## Stages
 
@@ -3521,6 +3625,93 @@ change at a time:
 Internal RAM free at rest, on the board: 105 KB to 113 KB. WPA3/SAE was kept
 deliberately - a router bought today is likely set to it, and it is the
 certificates that are expensive, not the handshake.
+
+## The restructuring, and what two reviews found
+
+Everything above was built stage by stage, and then taken apart and put back
+together so that somebody else could build on it. That work has its own
+record, because the mistakes in it are worth as much as the result.
+
+### R0-R8 - making it something to build on
+
+The system worked. It was hard to join. Each of these was measured first and
+fixed after, in this order, one commit per step:
+
+| | what it was | what it is |
+|---|---|---|
+| **R0** | "the tests pass" meant somebody counting lines by eye | `tools/boot_check.py` resets the board, counts, and compares the case **names** against a committed baseline - so a test that stops running is noticed, not just one that fails |
+| **R1** | ~130 settings across a dozen headers, 15 of them written twice, two already drifted apart | one file, [include/smartos_config.h](include/smartos_config.h): 18 sections, every entry `#ifndef`-wrapped so a project overrides it from `build_flags` without editing it |
+| **R2** | `main.cpp`, 1,775 lines, boot sequence mixed with twenty stage-2 demo tasks | a boot sequence you can read; the suites live in `src/tests/`, one file per area |
+| **R3-R6** | the kernel included the HAL, which pulled FreeRTOS back into the kernel directory | one seam, [components/smartos/port/kport.h](components/smartos/port/kport.h); `components/smartos/kernel/` has no ESP-IDF header in it at all |
+| **R7** | "the kernel is separable" was a claim in a README | [examples/kernel_blink/](examples/kernel_blink/) - a separate project, kernel plus three IDF components, no OS file in it, and it blinks |
+| **R8** | - | the documents, and a board that prints what it was built with |
+
+One number says whether R3-R6 worked: `grep -rn "esp_\|freertos/" components/smartos/kernel/` returns five hits, and all five are comments naming `esp_rom_printf` in prose.
+
+### A1 - paying for what is used, and nothing else
+
+The question that started it was "can SmartOS replace the RTOS and take the
+whole chip". The measured answer is in
+[What it would cost to take core 0 as well](#what-it-would-cost-to-take-core-0-as-well),
+and it is not the answer the question expects: **FreeRTOS is 2.1% of the
+flash. The Wi-Fi stack is about 65%.** So the work was to stop paying for
+what the board does not use, one measured change at a time. The table in that
+chapter has it change by change; across the whole of this effort the firmware
+went from 1,116,885 bytes of flash and 64,656 of internal RAM to 1,040,225 and
+56,812 - **76,660 and 7,844 given back** - while the self-test went from 48
+cases to 75.
+
+The one worth repeating: **three test buffers were sitting in `.bss` for the
+whole life of the board** - 6,016 bytes of the scarcest memory on the chip,
+held for tests that finish before the launcher is on screen.
+
+### What the reviews found
+
+Two rounds, ten findings, all fixed. The ones that mattered:
+
+**A `#define` in `main.cpp` cannot tell `system.cpp` anything.** `main.cpp`
+set `SMARTOS_KERNEL_TEST_BUILD` to say "this build has no app manager". The
+two `#ifndef` that acted on it were in `system.cpp`, which never saw it - so
+six stress builds ran the whole app section with no app manager and reported a
+fault in Home and in the app loader. Neither was at fault. It is the second
+time this exact mistake was made in this file; the derivation lives in a
+header both sides include now, and the comment says it happened twice.
+
+**Arithmetic in the bytecode machine could reach undefined behaviour.**
+Signed overflow is undefined in C++, this build is `-O2`, and the numbers come
+out of a file somebody else wrote. `b == 0` was checked; `INT32_MIN / -1` was
+not, nor `-INT32_MIN`, nor any overflow of `+ - *`. The machine's whole claim
+is that every way out is a checked error and not a fault. It computes unsigned
+and casts back now, which is defined to wrap.
+
+**`install` and `uninstall` built a file path from an unchecked name.** The
+shell has `fs_path()` - "under /fs, no `..`" - and `cat` and `ls` use it. The
+two commands that **write and delete** did not. `install ../sys/note 100`
+wrote `/fs/sys/note.app`. The guard was on the read-only commands and missing
+from the destructive ones.
+
+**A 98-byte file could take half the kernel pool.** The loader's size check
+bounded code, strings and constants but not globals or stack - the two it
+multiplies by four - and `APP_KERNEL_MAX`, which exists so no app may take
+more than 32 KB, appeared nowhere in the loader. The app manager could not see
+it either, because an installed app's state lives in the VM and its
+`user_size` is zero. Proved with a file built for the purpose:
+
+```
+[appload] refused hungry: wants 64235 B, and no app may take more than 32768
+```
+
+**The RAM page showed 284 KB and called it the whole chip.** The chip has
+512 KB. The difference is the firmware placed at link time - IRAM code,
+`.data`, `.bss` - which no heap figure reports and which cannot be freed. The
+page shows all of it now, and `CHIP_SRAM_BYTES` is in the config file with a
+comment saying why it has to be stated: ESP-IDF will not tell you.
+
+And one the review did not find, because it was true and said so plainly:
+`include/smartos.h` promised "mutexes, semaphores and queues, **all of them
+with timeouts**". None of them has one. The header lists what is missing now -
+no timeouts, no recursive mutex, no priority inheritance, no task
+notifications - because a public header that overstates is worse than none.
 
 ## Measurements from stage 1
 
