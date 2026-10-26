@@ -57,6 +57,7 @@ jumping out of the program
 taking from an empty stack
 filling the stack
 dividing by zero
+numbers that will not fit
 looping for ever
 a system call that does not
 recursing without end

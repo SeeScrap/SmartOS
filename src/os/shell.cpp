@@ -512,6 +512,18 @@ static void cmd_install(int argc, char **argv)
     }
     if (s_rx) { fclose(s_rx); s_rx = nullptr; }     // an install that stalled
 
+    // A name, not a path. Both this and appload paste it into
+    // APPLOAD_DIR "/%s" APPLOAD_EXT, so a name with '/' or ".." in it
+    // names a file somewhere else entirely: "install ../sys/note 100"
+    // used to write /fs/sys/note.app. fs_path() already guards the paths
+    // cat and ls are given; these two commands write and delete, and had
+    // no guard at all.
+    if (!appload_name_ok(argv[1])) {
+        logf("  an app name is letters, digits, _ and -, up to %d of them\n",
+             APPLOAD_NAME_MAX);
+        return;
+    }
+
     const uint32_t n = (uint32_t)strtoul(argv[2], nullptr, 10);
     if (n == 0 || n > 65536) { logf("  that size is not believable\n"); return; }
 
@@ -529,6 +541,7 @@ static void cmd_install(int argc, char **argv)
 static void cmd_uninstall(int argc, char **argv)
 {
     if (argc < 2) { logf("  uninstall <app>\n"); return; }
+    if (!appload_name_ok(argv[1])) { logf("  that is not an app name\n"); return; }
     if (!appload_forget(argv[1])) { logf("  %s\n", appload_last_error()); return; }
     char path[96];
     snprintf(path, sizeof(path), APPLOAD_DIR "/%s" APPLOAD_EXT, argv[1]);

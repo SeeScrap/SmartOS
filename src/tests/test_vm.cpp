@@ -34,7 +34,7 @@
 
 static int32_t s_globals[GLOBALS];
 static int32_t s_stack[STACK];
-static int32_t s_consts[4] = { 1000, -7, 0x1234, 42 };
+static int32_t s_consts[5] = { 1000, -7, 0x1234, 42, INT32_MIN };
 
 // A system call that doubles its argument, so a test can tell a real call
 // from a lucky return value. Number 0 in the table below.
@@ -156,6 +156,18 @@ void vm_logic_test(void)
     static const uint8_t g_div0[] = { 0x01,1, 0x01,0, 0x13, 0x34 };
     sdk_case("dividing by zero",
              stopped(g_div0, sizeof(g_div0), VM_ERR_DIV0, d, sizeof(d)), d);
+
+    // The three sums that do not fit, in one program, because signed overflow
+    // is undefined in C++ and this machine runs numbers it did not choose:
+    //   INT32_MIN / -1  ->  INT32_MIN   (the one division that overflows)
+    //   -INT32_MIN      ->  INT32_MIN
+    //   INT32_MIN + INT32_MIN -> 0
+    // Every other way out of this machine has a case above. Until A1 review
+    // these three had none, and none of them was handled.
+    static const uint8_t g_wrap[] = { 0x02,4,0, 0x01,0xFF, 0x13, 0x15,
+                                      0x02,4,0, 0x10, 0x34 };
+    sdk_case("numbers that will not fit",
+             ran(g_wrap, sizeof(g_wrap), 0, d, sizeof(d)), d);
 
     // The one that matters most on a system with a watchdog: a program that
     // never returns is stopped, and nothing else on the board notices.

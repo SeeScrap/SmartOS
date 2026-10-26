@@ -54,6 +54,22 @@ static installed_t s_apps[APPLOAD_MAX];
 
 const char *appload_last_error(void) { return s_error; }
 
+bool appload_name_ok(const char *name)
+{
+    if (!name || !*name) return false;
+    size_t n = 0;
+    for (const char *c = name; *c; ++c, ++n) {
+        const bool ok = (*c >= 'a' && *c <= 'z') || (*c >= 'A' && *c <= 'Z') ||
+                        (*c >= '0' && *c <= '9') || *c == '_' || *c == '-';
+        if (!ok) return false;
+    }
+    // The header holds the name in APPLOAD_NAME_MAX bytes and the loader
+    // makes the file's copy and the filename agree, so a longer name could
+    // never load. Refusing it here means the shell says so before it takes
+    // a file, instead of writing one to flash that nothing can ever use.
+    return n <= APPLOAD_NAME_MAX;
+}
+
 uint32_t appload_bytes(void)
 {
     uint32_t n = 0;
@@ -194,6 +210,8 @@ bool appload_one(const char *name)
     installed_t *a = free_slot();
     if (!a) return fail("no room for another installed app", name);
 
+    if (!appload_name_ok(name)) return fail("not a name an app may have", name);
+
     char path[96];
     k_snprintf(path, sizeof(path), APPLOAD_DIR "/%s%s", name, APPLOAD_EXT);
     FILE *f = fopen(path, "rb");
@@ -255,6 +273,22 @@ bool appload_one(const char *name)
     // strings get one extra byte, always zero, so a string that starts
     // inside the blob always ends inside it.
     const uint32_t need = body + (uint32_t)nglob * 4 + (uint32_t)nstack * 4 + 1;
+
+    // The same ceiling every built-in app lives under (stage 5.4e). It was
+    // never applied here, and the sizes checked above do not reach it:
+    // nglob and nstack are uint16 and each is multiplied by four, so a file
+    // of a few hundred bytes could ask for a quarter of a megabyte. Worse,
+    // the app manager could not see it - meta.user_size is 0 for an
+    // installed app because its state lives in the VM, so app_can_start()
+    // counted this block as nothing.
+    if (need > APP_KERNEL_MAX) {
+        fclose(f);
+        char w[72];
+        k_snprintf(w, sizeof(w), "wants %lu B, and no app may take more than %lu",
+                   (unsigned long)need, (unsigned long)APP_KERNEL_MAX);
+        return fail(w, name);
+    }
+
     uint8_t *block = (uint8_t *)kcalloc(need, 1);
     if (!block) { fclose(f); return fail("not enough room in the kernel pool", name); }
 

@@ -69,6 +69,18 @@
 // register the ones that are sound. Returns how many were registered.
 int appload_scan(void);
 
+// True if this is a name an app may have: letters, digits, '_' and '-',
+// at least one character and no more than the header can hold.
+//
+// IT IS A NAME, NOT A PATH, and that is the whole point. Both the loader and
+// the shell paste it into APPLOAD_DIR "/%s" APPLOAD_EXT, so a name carrying
+// '/' or ".." names a file somewhere else: before A1 review, "install
+// ../sys/note 100" wrote /fs/sys/note.app and "uninstall ../sys/note"
+// deleted it. The shell already had fs_path() for paths it is given, and
+// cat and ls used it - these two commands, the only ones that write and
+// delete, did not.
+bool appload_name_ok(const char *name);
+
 // Loads one file by name, as "counter" rather than "counter.app". Returns
 // true if it is now in the registry. Used by the shell after an install.
 bool appload_one(const char *name);

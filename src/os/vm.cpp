@@ -115,14 +115,34 @@ K_IRAM vm_err_t vm_run(const vm_program_t *p, const vm_syscalls_t *sys,
                             if (i >= sp) { err = VM_ERR_RANGE; goto done; }
                             NEED_SP(1); p->stack[i] = p->stack[--sp]; break; }
 
-            case VM_ADD: { POP2(); PUSH(a + b); break; }
-            case VM_SUB: { POP2(); PUSH(a - b); break; }
-            case VM_MUL: { POP2(); PUSH(a * b); break; }
+            // ARITHMETIC IS DONE UNSIGNED, AND THAT IS NOT A STYLE CHOICE.
+            // Signed overflow is undefined behaviour in C++: the compiler is
+            // entitled to assume it never happens and to rewrite the code
+            // around it on that assumption. This build is -O2, the numbers
+            // come out of a file somebody else wrote, and this machine's
+            // whole claim is that every way out is a checked error rather
+            // than a fault. Unsigned arithmetic is defined to wrap, and
+            // wrapping is what a 32-bit integer in this language means.
+            // VM_SHL below has always done it this way; now so does the rest.
+            case VM_ADD: { POP2(); PUSH((int32_t)((uint32_t)a + (uint32_t)b)); break; }
+            case VM_SUB: { POP2(); PUSH((int32_t)((uint32_t)a - (uint32_t)b)); break; }
+            case VM_MUL: { POP2(); PUSH((int32_t)((uint32_t)a * (uint32_t)b)); break; }
+
+            // INT32_MIN / -1 is the one division that overflows, and it is as
+            // undefined as dividing by zero - on some chips it traps the same
+            // way. Dividing by zero is an error the app can be told about;
+            // this one has an answer, so it is given the wrapped answer
+            // rather than being turned into a second kind of failure.
             case VM_DIV: { POP2();
-                           if (b == 0) { err = VM_ERR_DIV0; goto done; } PUSH(a / b); break; }
+                           if (b == 0) { err = VM_ERR_DIV0; goto done; }
+                           if (a == INT32_MIN && b == -1) { PUSH(INT32_MIN); break; }
+                           PUSH(a / b); break; }
             case VM_MOD: { POP2();
-                           if (b == 0) { err = VM_ERR_DIV0; goto done; } PUSH(a % b); break; }
-            case VM_NEG: { NEED_SP(1); const int32_t v = p->stack[--sp]; PUSH(-v); break; }
+                           if (b == 0) { err = VM_ERR_DIV0; goto done; }
+                           if (a == INT32_MIN && b == -1) { PUSH(0); break; }
+                           PUSH(a % b); break; }
+            case VM_NEG: { NEED_SP(1); const int32_t v = p->stack[--sp];
+                           PUSH((int32_t)(0u - (uint32_t)v)); break; }
 
             case VM_AND: { POP2(); PUSH(a & b); break; }
             case VM_OR:  { POP2(); PUSH(a | b); break; }
