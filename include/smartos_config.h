@@ -557,10 +557,21 @@
 #endif
 
 // How long the bring-up demo scene stays on screen after the boot screen,
-// before the launcher takes over. It exists to be judged by eye, so it needs
-// long enough to be looked at; 0 skips it.
+// before the launcher takes over: eight colour swatches, three rectangles
+// drawn deliberately off the edges, sixteen bars and a one-pixel red border.
+//
+// OFF. It is a test pattern, and a test pattern is not what somebody should
+// see when they switch the board on - it held the screen for a second and a
+// half of every boot looking like a fault. It stays in the tree because it
+// is still the quickest way to judge clipping and colour order by eye on a
+// new panel: set this to 1500 and it comes back, which is what it was until
+// now. At 0 the whole block in system.cpp compiles out and the linker drops
+// gfx_demo_scene() with it.
+//
+// ฉากทดสอบตอนบูต ปิดไว้ เพราะมันคือลายทดสอบ ไม่ใช่สิ่งที่คนควรเห็นตอนเปิด
+// เครื่อง ตั้งเป็น 1500 เมื่อต้องการตรวจการตัดขอบและลำดับสีบนจอใหม่ด้วยตา
 #ifndef GFX_DEMO_HOLD_MS
-#define GFX_DEMO_HOLD_MS  1500
+#define GFX_DEMO_HOLD_MS  0
 #endif
 
 
