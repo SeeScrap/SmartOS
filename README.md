@@ -3441,6 +3441,87 @@ asked why it had drawn no frames. An unfocused app never draws - that is the
 app model, and it has been checked since stage 4.3b. The test was wrong, not
 the loader.
 
+## What it would cost to take core 0 as well
+
+The obvious next question is whether SmartOS can have the whole chip - both
+cores, all the memory, no FreeRTOS anywhere. The answer was measured rather
+than guessed, and it is not the answer the question expects.
+
+### FreeRTOS is not what is using the chip
+
+Per-library, counting only what the linker actually placed in the image:
+
+| | flash | IRAM | DRAM |
+|---|---|---|---|
+| **FreeRTOS** | 33,479 (2.1%) | 7,326 (3.6%) | 3,856 (5.6%) |
+| SmartOS's own kernel | 32,165 | 22,224 | 3,597 |
+| **the Wi-Fi stack** | **~65%** | **~24%** | **~45%** |
+
+Removing FreeRTOS entirely would return about 33 KB of flash and 7 KB of
+IRAM, and cost every driver built on it: SPI flash, the SPI bus the panel
+hangs off, the USB Serial/JTAG console, LittleFS, PSRAM bring-up. That is a
+bad trade at any price.
+
+> **These per-library figures are attribution, not measurement.** They come
+> from the linker map, which lists every section considered including the ones
+> it then discarded, and they over-count by roughly 40% - worse for DRAM. They
+> are reliable for *which* library and useless for *how much*. A1d is the
+> cautionary tale: the map said the LEDC driver cost 11.3 KB, "about 10.4 of
+> it DRAM"; removing it returned 5,992 bytes of flash and 148 of RAM. Only the
+> linker's own total is a number.
+
+### The shim is 63 functions
+
+Letting SmartOS schedule core 0 does not mean rewriting ESP-IDF's drivers. It
+means giving them the FreeRTOS calls they expect, on top of the kernel that is
+already here. Counting the distinct FreeRTOS symbols that every non-Wi-Fi
+library in this build references gives **63**, and almost all of them are
+things SmartOS already has under another name:
+
+```
+xPortEnterCriticalTimeout 92   vPortExitCritical 92   xPortInIsrContext 40
+                                     -> k_lock, k_unlock, kport_core_id
+xQueueGenericSend 44   xQueueSemaphoreTake 38   xQueueReceive 14   *FromISR
+                                     -> k_queue_*, k_sem_*
+xQueueCreateMutex 14   xQueueGive/TakeMutexRecursive 6
+                                     -> k_mutex_*
+vTaskDelay 19   xTaskGetTickCount 9   xTaskGetCurrentTaskHandle 10
+                                     -> k_sleep_ms, k_ticks
+```
+
+What `kernel/ksync.h` would need first, and does not have: timeouts on every
+primitive, a recursive mutex, task notifications, static counting semaphores,
+and priority inheritance. `include/smartos.h` lists those too, because a
+public header that leaves them out is making a promise it cannot keep.
+
+### The wall, and it does not move
+
+`libpp`, `libphy` and `libnet80211` are closed binaries. They expect real
+FreeRTOS semantics and real FreeRTOS timing, and no shim is going to satisfy
+them by accident.
+
+So the shim could carry the ordinary drivers, and FreeRTOS would still have to
+be there for the radio. **While Wi-Fi is wanted, core 0 cannot become
+SmartOS's**, and the shim buys much less than it looks like it should. That is
+worth writing down rather than discovering twice.
+
+### What was done instead
+
+Stop paying for what the board does not use. Measured, on this board, one
+change at a time:
+
+| | flash | internal RAM |
+|---|---|---|
+| test scratch borrowed instead of held for the whole boot | +388 | **-6,016** |
+| SoftAP and WPA2-Enterprise, which this board cannot use | **-48,048** | -192 |
+| IPv6 in lwIP, which nothing here speaks | **-23,452** | -1,504 |
+| the backlight driven by register instead of by driver | **-5,992** | -148 |
+| | **-70,732** | **-7,712** |
+
+Internal RAM free at rest, on the board: 105 KB to 113 KB. WPA3/SAE was kept
+deliberately - a router bought today is likely set to it, and it is the
+certificates that are expensive, not the handshake.
+
 ## Measurements from stage 1
 
 | | value |
